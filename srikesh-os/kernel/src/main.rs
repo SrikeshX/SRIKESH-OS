@@ -24,6 +24,7 @@ mod graphics;
 mod icons;
 mod startup;
 mod keyboard;
+mod text_input;
 mod mouse;
 mod storage_guard;
 mod ata;
@@ -248,23 +249,43 @@ extern "C" fn preempt_task1_entry() -> ! {
             serial::write_str(" ticks\n");
         }
 
-        if let Some(ch) = crate::keyboard::pop_key() {
-            serial::write_str("[KEYBOARD EVENT] Key received\n");
+        if let Some(ev) = crate::keyboard::pop_key_event() {
+            use crate::keyboard::Key;
+            serial::write_str("[KEYBOARD EVENT] KeyEvent dispatched\n");
 
-            // Optional Function Key Shortcuts (dispatched safely outside IRQ)
-            let f_app = match ch {
-                crate::keyboard::KEY_F1 => Some(crate::desktop::ActiveApp::FileManager),
-                crate::keyboard::KEY_F2 => Some(crate::desktop::ActiveApp::Terminal),
-                crate::keyboard::KEY_F3 => Some(crate::desktop::ActiveApp::Browser),
-                crate::keyboard::KEY_F4 => Some(crate::desktop::ActiveApp::Settings),
-                crate::keyboard::KEY_F5 => Some(crate::desktop::ActiveApp::SystemMonitor),
-                crate::keyboard::KEY_F6 => Some(crate::desktop::ActiveApp::Games),
-                crate::keyboard::KEY_F7 => Some(crate::desktop::ActiveApp::Calculator),
-                crate::keyboard::KEY_F8 => Some(crate::desktop::ActiveApp::NetworkManager),
-                crate::keyboard::KEY_F9 => Some(crate::desktop::ActiveApp::SoftwareStore),
-                crate::keyboard::KEY_F10 => Some(crate::desktop::ActiveApp::About),
-                crate::keyboard::KEY_F11 => Some(crate::desktop::ActiveApp::AppLauncher),
-                crate::keyboard::KEY_F12 => Some(crate::desktop::ActiveApp::DesktopOnly),
+            // Alt+Tab -> switch focused window
+            if ev.alt && ev.key == Key::Tab {
+                crate::desktop::DESKTOP.lock().cycle_window_focus();
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+            // Alt+F4 -> close focused window
+            if ev.alt && ev.key == Key::F4 {
+                crate::desktop::DESKTOP.lock().close_focused_or_overlay();
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+            // Windows / Super key -> toggle App Launcher
+            if ev.key == Key::Super {
+                crate::desktop::launch_app(crate::desktop::ActiveApp::AppLauncher);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Optional Function Key Shortcuts
+            let f_app = match ev.key {
+                Key::F1 => Some(crate::desktop::ActiveApp::FileManager),
+                Key::F2 => Some(crate::desktop::ActiveApp::Terminal),
+                Key::F3 => Some(crate::desktop::ActiveApp::Browser),
+                Key::F4 => Some(crate::desktop::ActiveApp::Settings),
+                Key::F5 => Some(crate::desktop::ActiveApp::SystemMonitor),
+                Key::F6 => Some(crate::desktop::ActiveApp::Games),
+                Key::F7 => Some(crate::desktop::ActiveApp::Calculator),
+                Key::F8 => Some(crate::desktop::ActiveApp::NetworkManager),
+                Key::F9 => Some(crate::desktop::ActiveApp::SoftwareStore),
+                Key::F10 => Some(crate::desktop::ActiveApp::About),
+                Key::F11 => Some(crate::desktop::ActiveApp::AppLauncher),
+                Key::F12 => Some(crate::desktop::ActiveApp::DesktopOnly),
                 _ => None,
             };
             if let Some(target) = f_app {
@@ -273,37 +294,107 @@ extern "C" fn preempt_task1_entry() -> ! {
                 continue;
             }
 
-            // ESC closes focused window, launcher, or context menu
-            if ch == '\x1B' {
+            // ESC closes focused window, launcher, quick settings, or context menu
+            if ev.key == Key::Escape {
                 crate::desktop::DESKTOP.lock().close_focused_or_overlay();
                 crate::desktop::render_desktop_frame();
                 continue;
             }
 
-            let active_app = crate::desktop::DESKTOP.lock().active_app;
+            let (active_app, qs_wifi) = {
+                let d = crate::desktop::DESKTOP.lock();
+                (d.active_app, d.quick_settings_open && d.qs_wifi_view)
+            };
 
-            // Live Search when App Launcher is open
+            // Quick Settings Wi-Fi passphrase input
+            if qs_wifi {
+                crate::desktop::DESKTOP.lock().handle_wifi_pass_key_event(ev);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Live Search & Enter-to-launch when App Launcher is open
             if active_app == crate::desktop::ActiveApp::AppLauncher {
-                crate::desktop::DESKTOP.lock().handle_launcher_key(ch);
+                let (sw, sh) = {
+                    let g = crate::graphics::GRAPHICS.lock();
+                    (g.width, g.height)
+                };
+                crate::desktop::DESKTOP.lock().handle_launcher_key_event(ev, sw, sh);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Browser address bar input (full typing, Ctrl+C/V/A, arrows, Enter)
+            if active_app == crate::desktop::ActiveApp::Browser {
+                crate::browser::BROWSER.lock().handle_key(ev);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Text Editor input (full typing + Ctrl+S save to VFS)
+            if active_app == crate::desktop::ActiveApp::TextEditor {
+                crate::desktop::DESKTOP.lock().handle_editor_key_event(ev);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Network Manager Wi-Fi passphrase input
+            if active_app == crate::desktop::ActiveApp::NetworkManager {
+                crate::desktop::DESKTOP.lock().handle_wifi_pass_key_event(ev);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // File Manager keyboard navigation (Up/Down/Enter)
+            if active_app == crate::desktop::ActiveApp::FileManager {
+                let mut d = crate::desktop::DESKTOP.lock();
+                match ev.key {
+                    Key::Up => { if d.selected_file_idx > 0 { d.selected_file_idx -= 1; } }
+                    Key::Down => { if d.selected_file_idx < 7 { d.selected_file_idx += 1; } }
+                    Key::Home => { d.selected_file_idx = 0; }
+                    Key::Enter => {
+                        drop(d);
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::TextEditor);
+                        crate::desktop::render_desktop_frame();
+                        continue;
+                    }
+                    _ => {}
+                }
+                drop(d);
                 crate::desktop::render_desktop_frame();
                 continue;
             }
 
             // Games input
             if active_app == crate::desktop::ActiveApp::Games {
-                crate::games::GAMES.lock().handle_key(ch);
-                crate::desktop::render_desktop_frame();
+                let mapped = match ev.key {
+                    Key::Up => Some('\x11'),
+                    Key::Down => Some('\x12'),
+                    Key::Left => Some('\x13'),
+                    Key::Right => Some('\x14'),
+                    Key::Enter => Some('\n'),
+                    Key::Char(c) => Some(c),
+                    _ => None,
+                };
+                if let Some(ch) = mapped {
+                    crate::games::GAMES.lock().handle_key(ch);
+                    crate::desktop::render_desktop_frame();
+                }
                 continue;
             }
 
             // Calculator keyboard input
             if active_app == crate::desktop::ActiveApp::Calculator {
-                let s = match ch {
-                    '0' => Some("0"), '1' => Some("1"), '2' => Some("2"), '3' => Some("3"),
-                    '4' => Some("4"), '5' => Some("5"), '6' => Some("6"), '7' => Some("7"),
-                    '8' => Some("8"), '9' => Some("9"), '+' => Some("+"), '-' => Some("-"),
-                    '*' => Some("*"), '/' => Some("/"), '=' | '\n' | '\r' => Some("="),
-                    'c' | 'C' | '\x08' => Some("C"),
+                let s = match ev.key {
+                    Key::Char('0') => Some("0"), Key::Char('1') => Some("1"),
+                    Key::Char('2') => Some("2"), Key::Char('3') => Some("3"),
+                    Key::Char('4') => Some("4"), Key::Char('5') => Some("5"),
+                    Key::Char('6') => Some("6"), Key::Char('7') => Some("7"),
+                    Key::Char('8') => Some("8"), Key::Char('9') => Some("9"),
+                    Key::Char('+') => Some("+"), Key::Char('-') => Some("-"),
+                    Key::Char('*') => Some("*"), Key::Char('/') => Some("/"),
+                    Key::Char('=') | Key::Enter => Some("="),
+                    Key::Char('c') | Key::Char('C') | Key::Backspace | Key::Delete => Some("C"),
                     _ => None,
                 };
                 if let Some(lbl) = s {
@@ -316,26 +407,32 @@ extern "C" fn preempt_task1_entry() -> ! {
             // Terminal input (only when Terminal window is focused)
             if active_app == crate::desktop::ActiveApp::Terminal {
                 let mut shell = crate::shell::SHELL.lock();
-                if ch == '\n' || ch == '\r' {
-                    let len = shell.input_len;
-                    let mut cmd_copy = [0u8; 128];
-                    for i in 0..len {
-                        cmd_copy[i] = shell.input_buf[i];
-                    }
-                    shell.input_len = 0;
-                    if let Ok(safe_str) = core::str::from_utf8(&cmd_copy[..len]) {
-                        shell.execute_command(safe_str);
-                    }
-                } else if ch == '\x08' {
-                    if shell.input_len > 0 {
-                        shell.input_len -= 1;
-                    }
-                } else if (ch as u8) >= 0x20 && (ch as u8) <= 0x7E {
-                    if shell.input_len < 120 {
+                match ev.key {
+                    Key::Enter => {
                         let len = shell.input_len;
-                        shell.input_buf[len] = ch as u8;
-                        shell.input_len += 1;
+                        let mut cmd_copy = [0u8; 128];
+                        for i in 0..len {
+                            cmd_copy[i] = shell.input_buf[i];
+                        }
+                        shell.input_len = 0;
+                        if let Ok(safe_str) = core::str::from_utf8(&cmd_copy[..len]) {
+                            shell.execute_command(safe_str);
+                        }
                     }
+                    Key::Backspace | Key::Delete => {
+                        if shell.input_len > 0 {
+                            shell.input_len -= 1;
+                        }
+                    }
+                    Key::Char(ch) => {
+                        let b = ch as u8;
+                        if b >= 0x20 && b <= 0x7E && shell.input_len < 120 {
+                            let len = shell.input_len;
+                            shell.input_buf[len] = b;
+                            shell.input_len += 1;
+                        }
+                    }
+                    _ => {}
                 }
                 drop(shell);
                 crate::desktop::render_desktop_frame();
@@ -396,12 +493,17 @@ extern "C" fn preempt_task2_entry() -> ! {
             right_click_handled = false;
         }
 
-        // --- Cursor movement & window dragging ---
+        // --- Cursor movement & window dragging/resizing ---
         if mouse.x != last_mouse_x || mouse.y != last_mouse_y {
             last_mouse_x = mouse.x;
             last_mouse_y = mouse.y;
-            let _ = crate::desktop::handle_mouse_move(mouse.x, mouse.y, mouse.left_button);
-            needs_render = true;
+            let dragged_or_resized = crate::desktop::handle_mouse_move(mouse.x, mouse.y, mouse.left_button);
+            if dragged_or_resized {
+                needs_render = true;
+            } else if !needs_render {
+                // ULTRA-FAST dirty-rect cursor blit (~864 bytes instead of 8.3 MB -> zero lag!)
+                crate::desktop::update_cursor_fast(mouse.x, mouse.y);
+            }
         }
 
         // --- Scroll wheel ---
@@ -414,9 +516,9 @@ extern "C" fn preempt_task2_entry() -> ! {
             crate::desktop::render_desktop_frame();
         }
 
-        // --- Periodic refresh for live RTC clock & System Monitor ---
+        // --- Periodic refresh for live RTC clock & System Monitor (low overhead) ---
         render_ticks = render_ticks.wrapping_add(1);
-        if render_ticks % 250_000 == 0 {
+        if render_ticks % 2_500_000 == 0 {
             crate::desktop::render_desktop_frame();
         }
 

@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003d003000,
-    metadata: 3852488,
+    addr: 0x000000003cff8000,
+    metadata: 3895568,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e5b34, mem_size: e5b34, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e5b40, virtual_addr: e6b40, physical_addr: e6b40, file_size: 3d59f, mem_size: 3d59f, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 1230e0, virtual_addr: 1250e0, physical_addr: 1250e0, file_size: 2af8, mem_size: 2f20, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e6474, mem_size: e6474, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e6480, virtual_addr: e7480, physical_addr: e7480, file_size: 44e2f, mem_size: 44e2f, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 12b2b0, virtual_addr: 12d2b0, physical_addr: 12d2b0, file_size: 2fa8, mem_size: 3d50, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 125be0, virtual_addr: 128be0, physical_addr: 128be0, file_size: 2629e0, mem_size: 1291d40, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 12e260, virtual_addr: 131260, physical_addr: 131260, file_size: 263068, mem_size: 1292270, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x800011e110
-INFO : Creating GDT at PhysAddr(0x116f000)
+INFO : Entry point at: 0x800011aca0
+INFO : Creating GDT at PhysAddr(0x1171000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x800011e110)
+INFO : Jumping to kernel entry point at VirtAddr(0x800011aca0)
 [INFO] SRIKESH OS kernel started
 [MEMORY] Usable RAM: 984 MB
 [MEMORY] Usable regions: 98
-[MEMORY] Kernel size: 3762 KB
+[MEMORY] Kernel size: 3804 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -74,10 +74,11 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800011e110)
 [ATA] Discovered Master Drive: Model: VBOX HARDDISK                            | Capacity: 5 MB
 [STORAGE] Boot medium probed successfully. Sectors: 10368
 
-[CROSS-REBOOT PERSISTENCE] ✓ FOUND PERSISTENT DISK BLOCK ON SECTOR LBA 2048!
-[CROSS-REBOOT PERSISTENCE] ✓ File Name: /home/srikesh/persist_verify_2026.dat
-[CROSS-REBOOT PERSISTENCE] ✓ Content verification: 100% MATCH ACROSS VIRTUALBOX SHUTDOWN & RESTART!
-[STORAGE] Current System Boot Counter: #3 (Persistent state confirmed)
+[CROSS-REBOOT PERSISTENCE] Writing unique test file to hardware sector LBA 2048...
+[CROSS-REBOOT PERSISTENCE] ✓ Unique test file committed to hardware disk LBA 2048.
+[CROSS-REBOOT PERSISTENCE] ✓ File: /home/srikesh/persist_verify_2026.dat (53 bytes)
+[CROSS-REBOOT PERSISTENCE] Ready for shutdown and restart verification.
+[STORAGE] Current System Boot Counter: #1 (Persistent state confirmed)
 
 [FILESYSTEM TEST] Starting VFS & Persistence Verification...
 [FILESYSTEM TEST] ✓ Created: /home/srikesh/persistence_test.txt
@@ -104,7 +105,7 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800011e110)
 
 --- [SRIKESH OS HARDWARE COMPATIBILITY REPORT] ---
   [ETHERNET] Status : DETECTED & ACTIVE
-             Chipset: Intel 82540EM / 82545EM Gigabit
+             Chipset: Intel 82540EM / PRO/1000 Gigabit
   [WI-FI]    Status : NOT PRESENT ON THIS PCI BUS (Ethernet Primary)
              Note   : Wi-Fi Detection distinguished from Link Association per academic spec.
 --------------------------------------------------
@@ -191,41 +192,65 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800011e110)
 [KEYBOARD] Boot-time key buffer flushed
 
 --- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
-  [TSC] Cycles from Kernel Entry to Desktop: 19761638450 cycles
+  [TSC] Cycles from Kernel Entry to Desktop: 25659155801 cycles
   [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
-  [TSC] Approx Duration at nominal 3.0 GHz : 6587 ms
+  [TSC] Approx Duration at nominal 3.0 GHz : 8553 ms
 ---------------------------------------------------
 
 [INFO] Initializing interrupt-driven task contexts
 [INFO] Both interrupt task contexts initialized
 [DEBUG] TASK 1 FRAME WORDS:
-[DEBUG] FRAME[0x000000000000000F] = 0x0000008000119E90
+[DEBUG] FRAME[0x000000000000000F] = 0x0000008000114CB0
 [DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
 [DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
-[DEBUG] FRAME[0x0000000000000012] = 0x000000800035B558
+[DEBUG] FRAME[0x0000000000000012] = 0x0000008000362598
 [DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
 [DEBUG] CURRENT CS = 0x0000000000000008
-[DEBUG] TASK 1 initial frame: 0x000000800035B4B8
-[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800035B558
-[DEBUG] TASK 2 initial frame: 0x000000800037B4E8
-[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800037B588
+[DEBUG] TASK 1 initial frame: 0x00000080003624F8
+[DEBUG] TASK 1 expected post-IRET RSP: 0x0000008000362598
+[DEBUG] TASK 2 initial frame: 0x0000008000382528
+[DEBUG] TASK 2 expected post-IRET RSP: 0x00000080003825C8
 [INFO] Initial task dispatched
 [INFO] Starting timer-driven Round Robin scheduler
 
 [PREEMPT] TASK 1 STARTED
 
 [PREEMPT] TASK 2 STARTED
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+================================================
+  SRIKESH OS - Next-Gen Rust Microkernel v0.2.0
+  Author  : Srikesh S (CSE AI/ML)
+  Roll/USN: 25BTRCL258
+  Kernel  : Bare-Metal x86-64 Rust no_std
+  Storage : Persistent /etc/settings.cfg [ACTIVE]
+  Security: Internal Disk Zero-Write Guard [ARMED]
+================================================
 
 [PERFORMANCE] Scheduler runtime snapshot
-[PERFORMANCE] Context switches: 28
-[PERFORMANCE] Task 1 dispatches: 16
-[PERFORMANCE] Task 2 dispatches: 15
+[PERFORMANCE] Context switches: 70
+[PERFORMANCE] Task 1 dispatches: 36
+[PERFORMANCE] Task 2 dispatches: 36
 [PERFORMANCE] Scheduler quantum: 5 ticks
 [PREEMPT] TASK 1 RUNNING
-[PREEMPT] TASK 1 RUNNING
-[MOUSE] Left Click at (176, 736)
-[PREEMPT] TASK 1 RUNNING
-[MOUSE] Left Clic[PREEMPT] TASk at (392, 436)
-K 1 RUNNING
-[PREEMPT] TASK 1 RUNNING
-[PREEMPT] TASK 1 RUNNING
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[BROWSER] Navigate: youtube.com
+[KEYBOARD EVENT] KeyEvent dispatched

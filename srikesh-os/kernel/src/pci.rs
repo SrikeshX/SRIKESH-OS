@@ -59,8 +59,14 @@ pub struct PciRegistry {
     pub count: usize,
     pub wifi_detected: bool,
     pub wifi_chipset: &'static str,
+    pub wifi_vendor_id: u16,
+    pub wifi_device_id: u16,
+    pub wifi_rev: u8,
+    pub wifi_firmware_req: &'static str,
     pub ethernet_detected: bool,
     pub ethernet_chipset: &'static str,
+    pub eth_vendor_id: u16,
+    pub eth_device_id: u16,
     pub usb_detected: bool,
     pub usb_controller: &'static str,
     pub nvme_detected: bool,
@@ -76,8 +82,14 @@ impl PciRegistry {
             count: 0,
             wifi_detected: false,
             wifi_chipset: "None Detected",
+            wifi_vendor_id: 0,
+            wifi_device_id: 0,
+            wifi_rev: 0,
+            wifi_firmware_req: "N/A",
             ethernet_detected: false,
             ethernet_chipset: "None Detected",
+            eth_vendor_id: 0,
+            eth_device_id: 0,
             usb_detected: false,
             usb_controller: "None Detected",
             nvme_detected: false,
@@ -210,14 +222,21 @@ pub fn scan_pci_bus() {
                         }
                     }
                     0x02 => {
+                        let rev_id = (class_word & 0xFF) as u8;
                         serial::write_str("Network: ");
                         match subclass {
                             0x00 => {
+                                reg.eth_vendor_id = vendor_id;
+                                reg.eth_device_id = device_id;
                                 serial::write_str("Ethernet Adapter (");
                                 if vendor_id == 0x8086 && (device_id == 0x100E || device_id == 0x100F || device_id == 0x10D3) {
                                     reg.ethernet_detected = true;
-                                    reg.ethernet_chipset = "Intel 82540EM / 82545EM Gigabit";
+                                    reg.ethernet_chipset = "Intel 82540EM / PRO/1000 Gigabit";
                                     serial::write_str("Intel PRO/1000 Gigabit)\n");
+                                } else if vendor_id == 0x10EC && device_id == 0x8168 {
+                                    reg.ethernet_detected = true;
+                                    reg.ethernet_chipset = "Realtek RTL8168/8111 PCIe GbE";
+                                    serial::write_str("Realtek RTL8168 GbE)\n");
                                 } else if vendor_id == 0x10EC && device_id == 0x8139 {
                                     reg.ethernet_detected = true;
                                     reg.ethernet_chipset = "Realtek RTL8139 Fast Ethernet";
@@ -231,20 +250,32 @@ pub fn scan_pci_bus() {
                             0x80 => {
                                 serial::write_str("Wireless 802.11 Wi-Fi Controller (");
                                 reg.wifi_detected = true;
-                                if vendor_id == 0x8086 {
-                                    reg.wifi_chipset = "Intel Wireless Wi-Fi Adapter";
-                                    serial::write_str("Intel Wi-Fi)\n");
+                                reg.wifi_vendor_id = vendor_id;
+                                reg.wifi_device_id = device_id;
+                                reg.wifi_rev = rev_id;
+                                if vendor_id == 0x10EC && device_id == 0xC821 {
+                                    reg.wifi_chipset = "Realtek RTL8821CE 802.11ac PCIe";
+                                    reg.wifi_firmware_req = "rtw88/rtw8821c_fw.bin (rtw88)";
+                                    serial::write_str("Realtek RTL8821CE 10EC:C821)\n");
                                 } else if vendor_id == 0x10EC {
-                                    reg.wifi_chipset = "Realtek RTL8821/RTL8188 Wi-Fi Adapter";
+                                    reg.wifi_chipset = "Realtek 802.11 PCIe Wi-Fi";
+                                    reg.wifi_firmware_req = "rtw88 firmware blob";
                                     serial::write_str("Realtek Wi-Fi)\n");
+                                } else if vendor_id == 0x8086 {
+                                    reg.wifi_chipset = "Intel Wireless Wi-Fi Adapter";
+                                    reg.wifi_firmware_req = "iwlwifi-*.ucode";
+                                    serial::write_str("Intel Wi-Fi)\n");
                                 } else if vendor_id == 0x14E4 {
                                     reg.wifi_chipset = "Broadcom BCM43xx Wi-Fi Adapter";
+                                    reg.wifi_firmware_req = "brcmfmac firmware";
                                     serial::write_str("Broadcom Wi-Fi)\n");
                                 } else if vendor_id == 0x168C {
                                     reg.wifi_chipset = "Qualcomm Atheros Wi-Fi Adapter";
+                                    reg.wifi_firmware_req = "ath10k/ath11k firmware";
                                     serial::write_str("Atheros Wi-Fi)\n");
                                 } else {
                                     reg.wifi_chipset = "Standard 802.11 Wireless Controller";
+                                    reg.wifi_firmware_req = "Vendor 802.11 firmware";
                                     serial::write_str("Standard 802.11)\n");
                                 }
                             }

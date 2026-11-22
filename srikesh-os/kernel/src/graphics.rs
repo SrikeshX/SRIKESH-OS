@@ -78,10 +78,15 @@ impl Color {
     }
 }
 
-// 16 MB static backbuffer in BSS (zero cost on disk image)
-// Accommodates up to 2560x1440x4 = 14.7 MB, fully covering 1920x1080x4 = 8.3 MB for Dell Vostro 3520
-const MAX_BACKBUFFER_SIZE: usize = 1920 * 1080 * 4 * 2;
-static mut BACKBUFFER: [u8; MAX_BACKBUFFER_SIZE] = [0; MAX_BACKBUFFER_SIZE];
+// Two 8.3 MB static buffers in BSS (zero cost on disk image):
+// - BACKBUFFER: pristine cursor-free scene cache (up to 1920x1080x4)
+// - WALLPAPER_CACHE: pre-scaled & tinted desktop wallpaper for instant 1-memcpy redraws
+const SINGLE_FRAME_MAX: usize = 1920 * 1080 * 4;
+static mut BACKBUFFER: [u8; SINGLE_FRAME_MAX] = [0; SINGLE_FRAME_MAX];
+static mut WALLPAPER_CACHE: [u8; SINGLE_FRAME_MAX] = [0; SINGLE_FRAME_MAX];
+
+pub static LAST_FULL_FRAME_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+pub static LAST_CURSOR_BLIT_CYCLES: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 
 pub struct GraphicsEngine {
     pub width: usize,
@@ -92,6 +97,10 @@ pub struct GraphicsEngine {
     frontbuffer: *mut u8,
     frontbuffer_len: usize,
     has_backbuffer: bool,
+    wallpaper_cached: bool,
+    last_cursor_x: usize,
+    last_cursor_y: usize,
+    cursor_visible: bool,
 }
 
 // Safety: GraphicsEngine is wrapped in a spin::Mutex
@@ -109,6 +118,10 @@ impl GraphicsEngine {
             frontbuffer: core::ptr::null_mut(),
             frontbuffer_len: 0,
             has_backbuffer: false,
+            wallpaper_cached: false,
+            last_cursor_x: 0,
+            last_cursor_y: 0,
+            cursor_visible: false,
         }
     }
 
@@ -122,7 +135,35 @@ impl GraphicsEngine {
         self.frontbuffer_len = buffer.len();
 
         let needed_backbuffer = self.stride * self.height * self.bpp;
-        self.has_backbuffer = needed_backbuffer <= MAX_BACKBUFFER_SIZE;
+        self.has_backbuffer = needed_backbuffer <= SINGLE_FRAME_MAX;
+        self.wallpaper_cached = false;
+        self.cursor_visible = false;
+    }
+
+    /// Blits the pre-scaled tinted desktop wallpaper in a single fast memcpy (10x faster window drag/redraw)
+    pub fn draw_wallpaper_cached(&mut self, img_data: &[u8], src_w: usize, src_h: usize, tint: Color) {
+        if !self.has_backbuffer {
+            self.draw_image_rgb(0, 0, self.width, self.height, img_data, src_w, src_h);
+            self.fill_rect(0, 0, self.width, self.height, tint);
+            return;
+        }
+        let frame_bytes = self.stride * self.height * self.bpp;
+        if !self.wallpaper_cached {
+            self.draw_image_rgb(0, 0, self.width, self.height, img_data, src_w, src_h);
+            self.fill_rect(0, 0, self.width, self.height, tint);
+            let src = core::ptr::addr_of!(BACKBUFFER) as *const u8;
+            let dst = core::ptr::addr_of_mut!(WALLPAPER_CACHE) as *mut u8;
+            unsafe {
+                core::ptr::copy_nonoverlapping(src, dst, frame_bytes);
+            }
+            self.wallpaper_cached = true;
+        } else {
+            let src = core::ptr::addr_of!(WALLPAPER_CACHE) as *const u8;
+            let dst = core::ptr::addr_of_mut!(BACKBUFFER) as *mut u8;
+            unsafe {
+                core::ptr::copy_nonoverlapping(src, dst, frame_bytes);
+            }
+        }
     }
 
     #[inline(always)]
@@ -422,6 +463,115 @@ impl GraphicsEngine {
                 }
             }
         }
+    }
+
+    #[inline(always)]
+    fn write_front_pixel(&self, x: usize, y: usize, color: Color) {
+        if x >= self.width || y >= self.height || self.frontbuffer.is_null() {
+            return;
+        }
+        let offset = (y * self.stride + x) * self.bpp;
+        if offset + self.bpp <= self.frontbuffer_len {
+            unsafe {
+                let p = self.frontbuffer.add(offset);
+                match self.format {
+                    PixelFormat::Bgr => {
+                        *p = color.b;
+                        if self.bpp > 1 { *p.add(1) = color.g; }
+                        if self.bpp > 2 { *p.add(2) = color.r; }
+                    }
+                    PixelFormat::Rgb => {
+                        *p = color.r;
+                        if self.bpp > 1 { *p.add(1) = color.g; }
+                        if self.bpp > 2 { *p.add(2) = color.b; }
+                    }
+                    PixelFormat::U8 => {
+                        *p = ((color.r as u16 + color.g as u16 + color.b as u16) / 3) as u8;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    fn draw_cursor_to_front(&self, x: usize, y: usize) {
+        #[rustfmt::skip]
+        const CURSOR_MAP: [[u8; 12]; 18] = [
+            [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [2, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [2, 3, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+            [2, 3, 3, 3, 2, 0, 0, 0, 0, 0, 0, 0],
+            [2, 3, 3, 3, 3, 2, 0, 0, 0, 0, 0, 0],
+            [2, 3, 3, 3, 3, 3, 2, 0, 0, 0, 0, 0],
+            [2, 3, 3, 3, 3, 3, 3, 2, 0, 0, 0, 0],
+            [2, 3, 3, 3, 3, 3, 3, 3, 2, 0, 0, 0],
+            [2, 3, 3, 3, 3, 3, 2, 2, 2, 2, 0, 0],
+            [2, 3, 3, 2, 3, 3, 2, 0, 0, 0, 0, 0],
+            [2, 3, 2, 0, 2, 3, 3, 2, 0, 0, 0, 0],
+            [2, 2, 0, 0, 2, 3, 3, 2, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 2, 3, 3, 2, 0, 0, 0],
+            [0, 0, 0, 0, 0, 2, 3, 3, 2, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 2, 3, 3, 2, 0, 0],
+            [0, 0, 0, 0, 0, 0, 2, 3, 3, 2, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0],
+        ];
+        for (cy, row) in CURSOR_MAP.iter().enumerate() {
+            for (cx, &val) in row.iter().enumerate() {
+                match val {
+                    2 => self.write_front_pixel(x + cx, y + cy, Color::WHITE),
+                    3 => self.write_front_pixel(x + cx, y + cy, Color::BRIGHT_GOLD),
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    /// Blits the pristine cursor-free BACKBUFFER to VRAM, then overlays cursor directly on frontbuffer.
+    pub fn swap_buffers_with_cursor(&mut self, cursor_x: usize, cursor_y: usize) {
+        let t0 = unsafe { core::arch::x86_64::_rdtsc() };
+        self.swap_buffers();
+        self.draw_cursor_to_front(cursor_x, cursor_y);
+        self.last_cursor_x = cursor_x;
+        self.last_cursor_y = cursor_y;
+        self.cursor_visible = true;
+        let t1 = unsafe { core::arch::x86_64::_rdtsc() };
+        LAST_FULL_FRAME_CYCLES.store(t1.saturating_sub(t0), core::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// ULTRA-FAST dirty-rect cursor update (~864 bytes vs 8.3 MB):
+    /// Restores old 12x18 cursor patch from BACKBUFFER to VRAM and draws cursor at new position.
+    pub fn update_cursor_only(&mut self, new_x: usize, new_y: usize) {
+        if !self.has_backbuffer || self.frontbuffer.is_null() {
+            return;
+        }
+        let t0 = unsafe { core::arch::x86_64::_rdtsc() };
+        if self.cursor_visible {
+            let old_x = self.last_cursor_x;
+            let old_y = self.last_cursor_y;
+            let patch_w = 12usize.min(self.width.saturating_sub(old_x));
+            let patch_h = 18usize.min(self.height.saturating_sub(old_y));
+            let row_bytes = patch_w * self.bpp;
+            let src_base = core::ptr::addr_of!(BACKBUFFER) as *const u8;
+            for r in 0..patch_h {
+                let offset = ((old_y + r) * self.stride + old_x) * self.bpp;
+                if offset + row_bytes <= self.frontbuffer_len {
+                    unsafe {
+                        core::ptr::copy_nonoverlapping(
+                            src_base.add(offset),
+                            self.frontbuffer.add(offset),
+                            row_bytes,
+                        );
+                    }
+                }
+            }
+        }
+        self.draw_cursor_to_front(new_x, new_y);
+        self.last_cursor_x = new_x;
+        self.last_cursor_y = new_y;
+        self.cursor_visible = true;
+        let t1 = unsafe { core::arch::x86_64::_rdtsc() };
+        LAST_CURSOR_BLIT_CYCLES.store(t1.saturating_sub(t0), core::sync::atomic::Ordering::Relaxed);
     }
 
     /// Fast double-buffer swap: Blits the backbuffer into the front VRAM buffer.

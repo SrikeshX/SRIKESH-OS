@@ -11,8 +11,10 @@
 //! - Desktop Graphical Icons with Single-Click Select & Double-Click Launch
 //! - Right-Click Desktop Context Menu
 
-use crate::graphics::{Color, GraphicsEngine, GRAPHICS};
+use crate::graphics::{Color, GraphicsEngine, GRAPHICS, LAST_CURSOR_BLIT_CYCLES, LAST_FULL_FRAME_CYCLES};
 use crate::icons::{self, AppIconKind};
+use crate::keyboard::{Key, KeyEvent};
+use crate::text_input::TextField;
 use crate::mouse::get_mouse_state;
 use crate::shell::SHELL;
 use crate::vfs::VFS;
@@ -104,24 +106,35 @@ pub struct DesktopManager {
     pub next_z: u32,
     pub launcher_open: bool,
     pub launcher_category: LauncherCategory,
-    pub search_buf: [u8; 32],
-    pub search_len: usize,
+    pub search_field: TextField,
     // Desktop icon selection & double-click tracking
     pub selected_desktop_icon: Option<usize>,
     pub last_icon_click_idx: Option<usize>,
     pub last_icon_click_tick: u64,
-    // Window dragging state
+    // Window dragging & resizing state
     pub dragging_slot: Option<usize>,
+    pub resizing_slot: Option<usize>,
     pub drag_offset_x: usize,
     pub drag_offset_y: usize,
     // Right-click desktop context menu
     pub ctx_menu_open: bool,
     pub ctx_menu_x: usize,
     pub ctx_menu_y: usize,
-    // System tray states
+    // Windows-11-style Quick Settings & Wi-Fi flyout
+    pub quick_settings_open: bool,
+    pub qs_wifi_view: bool,
+    pub night_light: bool,
+    pub energy_saver: bool,
     pub volume_muted: bool,
-    // File Manager selection
+    pub volume_level: usize,
+    pub brightness_level: usize,
+    pub wifi_pass_field: TextField,
+    pub wifi_status_note: &'static str,
+    // File Manager & Text Editor states
     pub selected_file_idx: usize,
+    pub editor_field: TextField,
+    pub editor_saved_flash: bool,
+    pub new_file_counter: u32,
     // Image Viewer selection (0 = Anubis, 1 = Pharaoh)
     pub viewer_image_idx: usize,
     // Network Manager diagnostic message
@@ -141,19 +154,30 @@ impl DesktopManager {
             next_z: 1,
             launcher_open: false,
             launcher_category: LauncherCategory::All,
-            search_buf: [0; 32],
-            search_len: 0,
+            search_field: TextField::new(false),
             selected_desktop_icon: None,
             last_icon_click_idx: None,
             last_icon_click_tick: 0,
             dragging_slot: None,
+            resizing_slot: None,
             drag_offset_x: 0,
             drag_offset_y: 0,
             ctx_menu_open: false,
             ctx_menu_x: 0,
             ctx_menu_y: 0,
+            quick_settings_open: false,
+            qs_wifi_view: false,
+            night_light: false,
+            energy_saver: false,
             volume_muted: false,
+            volume_level: 75,
+            brightness_level: 85,
+            wifi_pass_field: TextField::new(true),
+            wifi_status_note: "Enter Wi-Fi passphrase & press Enter",
             selected_file_idx: 0,
+            editor_field: TextField::new(false),
+            editor_saved_flash: false,
+            new_file_counter: 1,
             viewer_image_idx: 0,
             net_ping_ok: None,
             calc_accum: 0,
@@ -315,9 +339,29 @@ impl DesktopManager {
             }
         }
         self.launcher_open = false;
+        self.quick_settings_open = false;
         self.ctx_menu_open = false;
         self.dragging_slot = None;
+        self.resizing_slot = None;
         self.sync_active_app();
+    }
+
+    /// Alt+Tab window switcher: cycles focus to the next open window
+    pub fn cycle_window_focus(&mut self) {
+        let cur = self.focused_window_slot();
+        let start = cur.map_or(0, |s| (s + 1) % MAX_WINDOWS);
+        for offset in 0..MAX_WINDOWS {
+            let idx = (start + offset) % MAX_WINDOWS;
+            if self.windows[idx].open {
+                self.windows[idx].minimized = false;
+                self.next_z += 1;
+                self.windows[idx].z = self.next_z;
+                self.launcher_open = false;
+                self.quick_settings_open = false;
+                self.sync_active_app();
+                return;
+            }
+        }
     }
 
     pub fn close_focused_or_overlay(&mut self) {
@@ -325,9 +369,14 @@ impl DesktopManager {
             self.ctx_menu_open = false;
             return;
         }
+        if self.quick_settings_open {
+            self.quick_settings_open = false;
+            self.qs_wifi_view = false;
+            return;
+        }
         if self.launcher_open {
             self.launcher_open = false;
-            self.search_len = 0;
+            self.search_field.clear();
             self.sync_active_app();
             return;
         }
@@ -336,15 +385,49 @@ impl DesktopManager {
         }
     }
 
-    pub fn handle_launcher_key(&mut self, ch: char) {
-        if ch == '\x08' {
-            if self.search_len > 0 {
-                self.search_len -= 1;
+    pub fn handle_launcher_key_event(&mut self, ev: KeyEvent, screen_w: usize, screen_h: usize) {
+        if self.search_field.handle_key(ev) {
+            // Enter pressed -> launch first matching app in launcher!
+            let active_cat = self.launcher_category;
+            let s_field = self.search_field;
+            let search_str = s_field.as_str();
+            for entry in LAUNCHER_ENTRIES {
+                if active_cat != LauncherCategory::All && entry.cat != active_cat {
+                    continue;
+                }
+                if contains_ignore_case(entry.name, search_str) {
+                    if let Some(gt) = entry.game {
+                        GAMES.lock().current_game = gt;
+                    }
+                    self.search_field.clear();
+                    self.open_or_focus_app(entry.app, screen_w, screen_h);
+                    return;
+                }
             }
-        } else if (ch as u8) >= 0x20 && (ch as u8) <= 0x7E {
-            if self.search_len < 28 {
-                self.search_buf[self.search_len] = ch as u8;
-                self.search_len += 1;
+        }
+    }
+
+    pub fn handle_editor_key_event(&mut self, ev: KeyEvent) {
+        if ev.ctrl {
+            if let Key::Char(c) = ev.key {
+                if c.to_ascii_lowercase() == 's' {
+                    let txt = self.editor_field.as_str();
+                    let _ = VFS.lock().write_file("/home/srikesh/notes.txt", txt.as_bytes());
+                    self.editor_saved_flash = true;
+                    return;
+                }
+            }
+        }
+        self.editor_saved_flash = false;
+        let _ = self.editor_field.handle_key(ev);
+    }
+
+    pub fn handle_wifi_pass_key_event(&mut self, ev: KeyEvent) {
+        if self.wifi_pass_field.handle_key(ev) {
+            if self.wifi_pass_field.len < 8 {
+                self.wifi_status_note = "WPA2 passphrase must be at least 8 chars";
+            } else {
+                self.wifi_status_note = "Passphrase stored; rtw8821c_fw.bin required for RF link";
             }
         }
     }
@@ -600,6 +683,11 @@ fn app_icon_kind(app: ActiveApp) -> AppIconKind {
     }
 }
 
+/// Ultra-fast cursor-only VRAM update (~864 bytes instead of 8.3 MB -> zero mouse lag at 1920x1080)
+pub fn update_cursor_fast(x: usize, y: usize) {
+    GRAPHICS.lock().update_cursor_only(x, y);
+}
+
 /// Renders the complete SRIKESH OS Egyptian Royal Windows-Inspired Desktop Frame
 pub fn render_desktop_frame() {
     let mut gfx = GRAPHICS.lock();
@@ -618,14 +706,23 @@ pub fn render_desktop_frame() {
         focused_slot,
         launcher_open,
         launcher_cat,
-        search_buf,
-        search_len,
+        search_field,
         selected_desktop_icon,
         ctx_open,
         ctx_x,
         ctx_y,
+        qs_open,
+        qs_wifi_view,
+        night_light,
+        energy_saver,
         volume_muted,
+        volume_level,
+        brightness_level,
+        wifi_pass_field,
+        wifi_status_note,
         selected_file_idx,
+        editor_field,
+        editor_saved_flash,
         viewer_image_idx,
         net_ping_ok,
         calc_current,
@@ -637,14 +734,23 @@ pub fn render_desktop_frame() {
             d.focused_window_slot(),
             d.launcher_open,
             d.launcher_category,
-            d.search_buf,
-            d.search_len,
+            d.search_field,
             d.selected_desktop_icon,
             d.ctx_menu_open,
             d.ctx_menu_x,
             d.ctx_menu_y,
+            d.quick_settings_open,
+            d.qs_wifi_view,
+            d.night_light,
+            d.energy_saver,
             d.volume_muted,
+            d.volume_level,
+            d.brightness_level,
+            d.wifi_pass_field,
+            d.wifi_status_note,
             d.selected_file_idx,
+            d.editor_field,
+            d.editor_saved_flash,
             d.viewer_image_idx,
             d.net_ping_ok,
             d.calc_current,
@@ -652,17 +758,13 @@ pub fn render_desktop_frame() {
         )
     };
 
-    // 1. Supplied Reference Image 1: Anubis / Jackal on Golden Throne Wallpaper
-    gfx.draw_image_rgb(
-        0,
-        0,
-        screen_w,
-        screen_h,
+    // 1. Pre-cached Supplied Anubis Wallpaper (1 fast memcpy instead of 2M pixel scalings!)
+    gfx.draw_wallpaper_cached(
         DESKTOP_WALLPAPER_RAW,
         DESKTOP_WALLPAPER_WIDTH,
         DESKTOP_WALLPAPER_HEIGHT,
+        Color::with_alpha(10, 8, 6, 36),
     );
-    gfx.fill_rect(0, 0, screen_w, screen_h, Color::with_alpha(10, 8, 6, 36));
 
     // 2. Top Royal Status Bar
     gfx.fill_rect(0, 0, screen_w, TOP_BAR_H, Color::with_alpha(12, 10, 8, 235));
@@ -754,6 +856,10 @@ pub fn render_desktop_frame() {
             mouse_now.x,
             mouse_now.y,
             selected_file_idx,
+            &editor_field,
+            editor_saved_flash,
+            &wifi_pass_field,
+            wifi_status_note,
             viewer_image_idx,
             net_ping_ok,
             calc_current,
@@ -764,8 +870,25 @@ pub fn render_desktop_frame() {
 
     // 5. Windows-11 / Slax-Inspired Application Launcher Overlay
     if launcher_open {
-        let search_str = core::str::from_utf8(&search_buf[..search_len]).unwrap_or("");
-        render_app_launcher(&mut gfx, screen_w, screen_h, mouse_now.x, mouse_now.y, launcher_cat, search_str);
+        render_app_launcher(&mut gfx, screen_w, screen_h, mouse_now.x, mouse_now.y, launcher_cat, &search_field);
+    }
+
+    // 5b. Windows-11-Inspired Quick Settings & Wi-Fi Flyout Panel
+    if qs_open {
+        render_quick_settings(
+            &mut gfx,
+            screen_w,
+            screen_h,
+            qs_wifi_view,
+            eth_up,
+            night_light,
+            energy_saver,
+            volume_muted,
+            volume_level,
+            brightness_level,
+            &wifi_pass_field,
+            wifi_status_note,
+        );
     }
 
     // 6. Right-Click Desktop Context Menu
@@ -891,9 +1014,12 @@ pub fn render_desktop_frame() {
         gfx.draw_text(tray_x + 96, tb_y + 26, d_str, Color::ROYAL_SAND, 1);
     }
 
-    // 8. Hardware Mouse Cursor (always topmost)
-    gfx.draw_cursor(mouse_now.x, mouse_now.y);
-    gfx.swap_buffers();
+    if night_light {
+        gfx.fill_rect(0, 0, screen_w, screen_h, Color::with_alpha(255, 140, 20, 28));
+    }
+
+    // 8. Swap pristine cursor-free BACKBUFFER to VRAM, then overlay cursor directly on frontbuffer
+    gfx.swap_buffers_with_cursor(mouse_now.x, mouse_now.y);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -904,6 +1030,10 @@ fn render_window(
     mouse_x: usize,
     mouse_y: usize,
     selected_file_idx: usize,
+    editor_field: &TextField,
+    editor_saved_flash: bool,
+    wifi_pass_field: &TextField,
+    wifi_status_note: &str,
     viewer_image_idx: usize,
     net_ping_ok: Option<bool>,
     calc_current: i64,
@@ -921,6 +1051,15 @@ fn render_window(
     gfx.fill_rounded_rect(win_x, win_y, win_w, win_h, 8, Color::new(20, 16, 12));
     let border_col = if is_focused { Color::BRIGHT_GOLD } else { Color::DARK_GOLD };
     gfx.draw_rect_outline(win_x, win_y, win_w, win_h, border_col, 1);
+
+    // Bottom-right golden resize grip (when not maximized)
+    if !win.maximized {
+        let gx = win_x + win_w - 14;
+        let gy = win_y + win_h - 14;
+        gfx.fill_rect(gx + 8, gy + 10, 4, 2, Color::ROYAL_GOLD);
+        gfx.fill_rect(gx + 4, gy + 10, 2, 2, Color::DARK_GOLD);
+        gfx.fill_rect(gx + 10, gy + 4, 2, 6, Color::ROYAL_GOLD);
+    }
 
     // Title Bar
     let tb_col = if is_focused { Color::new(42, 33, 20) } else { Color::new(28, 23, 17) };
@@ -1037,24 +1176,27 @@ fn render_window(
         }
         ActiveApp::TextEditor => {
             gfx.fill_rect(cx, cy, win_w - 32, 22, Color::new(28, 22, 16));
-            gfx.draw_text(cx + 8, cy + 7, "File: /home/srikesh/notes.txt  |  UTF-8  |  Royal S-Edit", Color::ROYAL_SAND, 1);
+            gfx.draw_text(cx + 8, cy + 7, "File: /home/srikesh/notes.txt  |  Ctrl+S Save  |  Ctrl+A/C/V/X", Color::ROYAL_SAND, 1);
             cy += 30;
-            let lines = [
-                ("1 |", "// SRIKESH OS - Kernel Architecture Notes"),
-                ("2 |", "// Custom x86-64 Rust no_std Micro-OS"),
-                ("3 |", "// Target: Dell Vostro 3520 (Intel/AMD x86-64)"),
-                ("4 |", ""),
-                ("5 |", "fn kernel_entry() {"),
-                ("6 |", "    init_preemptive_scheduler(); // 50ms Round-Robin"),
-                ("7 |", "    lock_host_internal_storage(); // Zero-Write Guard"),
-                ("8 |", "    init_multi_window_compositor();"),
-                ("9 |", "    awaken_power_of_technology();"),
-                ("10|", "}"),
-            ];
-            for (n, code) in lines {
-                gfx.draw_text(cx + 4, cy, n, Color::TEXT_MUTED, 1);
-                gfx.draw_text(cx + 38, cy, code, Color::BRIGHT_GOLD, 1);
-                cy += 18;
+            gfx.draw_text(cx, cy, "Live Editable Document Buffer (Type anywhere, Home/End/Arrows/Del):", Color::BRIGHT_GOLD, 1);
+            cy += 20;
+            editor_field.render(gfx, cx, cy, win_w - 32, 32, "Type your note here and press Ctrl+S to save to VFS...", is_focused);
+            cy += 42;
+            if editor_saved_flash {
+                gfx.draw_text(cx, cy, "[SAVED] Written to /home/srikesh/notes.txt in VFS!", Color::SUCCESS_GREEN, 1);
+            } else {
+                gfx.draw_text(cx, cy, "Current VFS /home/srikesh/notes.txt contents:", Color::ROYAL_GOLD, 1);
+            }
+            cy += 20;
+            if let Ok(data) = VFS.lock().read_file("/home/srikesh/notes.txt") {
+                if let Ok(txt) = core::str::from_utf8(data) {
+                    for line in txt.split('\n').take(9) {
+                        let max_c = (win_w.saturating_sub(48)) / 8;
+                        let clipped = if line.len() > max_c { &line[..max_c] } else { line };
+                        gfx.draw_text(cx + 8, cy, clipped, Color::WHITE, 1);
+                        cy += 16;
+                    }
+                }
             }
         }
         ActiveApp::Calculator => {
@@ -1131,6 +1273,7 @@ fn render_window(
             let eth_chip = pci.ethernet_chipset;
             let wifi_det = pci.wifi_detected;
             let wifi_chip = pci.wifi_chipset;
+            let wifi_fw = pci.wifi_firmware_req;
             drop(pci);
 
             gfx.fill_rect(cx, cy, win_w - 32, 20, Color::new(28, 22, 14));
@@ -1155,7 +1298,7 @@ fn render_window(
             } else {
                 gfx.draw_text(cx + 140, cy, "Unassigned (Offline)", Color::TEXT_MUTED, 1);
             }
-            cy += 26;
+            cy += 24;
 
             // Clickable Ping Diagnostic Button
             gfx.fill_rounded_rect(cx + 4, cy, 180, 24, 4, Color::new(42, 34, 18));
@@ -1170,13 +1313,13 @@ fn render_window(
                     1,
                 );
             }
-            cy += 34;
+            cy += 32;
 
             gfx.fill_rect(cx, cy, win_w - 32, 20, Color::new(28, 22, 14));
-            gfx.draw_text(cx + 8, cy + 6, "[ WI-FI -- PCI Hardware Discovery ]", Color::BRIGHT_GOLD, 1);
+            gfx.draw_text(cx + 8, cy + 6, "[ WI-FI -- PCI Hardware Discovery & Passphrase ]", Color::BRIGHT_GOLD, 1);
             cy += 24;
 
-            gfx.draw_text(cx + 4, cy, "PCI Discovery :", Color::ROYAL_GOLD, 1);
+            gfx.draw_text(cx + 4, cy, "PCI Chipset   :", Color::ROYAL_GOLD, 1);
             gfx.draw_text(
                 cx + 140,
                 cy,
@@ -1185,8 +1328,14 @@ fn render_window(
                 1,
             );
             cy += 18;
-            gfx.draw_text(cx + 4, cy, "Association   :", Color::ROYAL_GOLD, 1);
-            gfx.draw_text(cx + 140, cy, "Not Connected (WPA2/802.11 firmware not loaded)", Color::TEXT_MUTED, 1);
+            gfx.draw_text(cx + 4, cy, "Firmware Req  :", Color::ROYAL_GOLD, 1);
+            gfx.draw_text(cx + 140, cy, wifi_fw, Color::ROYAL_SAND, 1);
+            cy += 18;
+            gfx.draw_text(cx + 4, cy, "WPA2 Password :", Color::ROYAL_GOLD, 1);
+            wifi_pass_field.render(gfx, cx + 140, cy.saturating_sub(4), (win_w.saturating_sub(180)).min(260), 22, "Type password (masked)...", is_focused);
+            cy += 26;
+            gfx.draw_text(cx + 4, cy, "Status        :", Color::ROYAL_GOLD, 1);
+            gfx.draw_text(cx + 140, cy, wifi_status_note, Color::TEXT_MUTED, 1);
         }
         ActiveApp::Games => {
             GAMES.lock().render(gfx, win_x, win_y, win_w, win_h);
@@ -1196,11 +1345,15 @@ fn render_window(
             let switches = crate::CONTEXT_SWITCH_COUNT.load(Ordering::Relaxed);
             let t1 = crate::TASK1_DISPATCH_COUNT.load(Ordering::Relaxed);
             let t2 = crate::TASK2_DISPATCH_COUNT.load(Ordering::Relaxed);
+            let full_cyc = LAST_FULL_FRAME_CYCLES.load(Ordering::Relaxed);
+            let cur_cyc = LAST_CURSOR_BLIT_CYCLES.load(Ordering::Relaxed);
 
             let mut b1 = [0u8; 24];
             let mut b2 = [0u8; 24];
             let mut b3 = [0u8; 24];
             let mut b4 = [0u8; 24];
+            let mut b5 = [0u8; 24];
+            let mut b6 = [0u8; 24];
 
             let rows: &[(&str, &str)] = &[
                 ("CPU Mode          :", "x86-64 Long Mode (Custom Rust no_std Kernel)"),
@@ -1208,14 +1361,15 @@ fn render_window(
                 ("Context Switches  :", format_u64_into(switches, &mut b2)),
                 ("Task 1 Dispatches :", format_u64_into(t1, &mut b3)),
                 ("Task 2 Dispatches :", format_u64_into(t2, &mut b4)),
+                ("Full Frame Cycles :", format_u64_into(full_cyc, &mut b5)),
+                ("Cursor Blit Cycles:", format_u64_into(cur_cyc, &mut b6)),
                 ("Scheduler Quantum :", "5 PIT Ticks (50 ms Round-Robin Preemption)"),
-                ("Memory Allocator  :", "64 KB Kernel Heap Bump Allocator + Dynamic Mapping"),
                 ("Host Disk Guard   :", "ACTIVE (Internal NVMe/SATA Strictly Read-Only)"),
             ];
             for &(k, v) in rows {
                 gfx.draw_text(cx, cy, k, Color::ROYAL_GOLD, 1);
                 gfx.draw_text(cx + 170, cy, v, Color::WHITE, 1);
-                cy += 22;
+                cy += 21;
             }
         }
         ActiveApp::Settings => {
@@ -1317,7 +1471,7 @@ fn render_app_launcher(
     mouse_x: usize,
     mouse_y: usize,
     active_cat: LauncherCategory,
-    search_str: &str,
+    search_field: &TextField,
 ) {
     let (lx, ly, lw, lh) = launcher_rect(screen_w, screen_h);
 
@@ -1326,18 +1480,12 @@ fn render_app_launcher(
     gfx.fill_rounded_rect(lx, ly, lw, lh, 10, Color::with_alpha(18, 15, 11, 245));
     gfx.draw_rect_outline(lx, ly, lw, lh, Color::BRIGHT_GOLD, 1);
 
-    // Top Search Bar
+    // Top Reusable TextField Search Bar
     let sb_x = lx + 16;
     let sb_y = ly + 14;
     let sb_w = lw - 32;
-    gfx.fill_rounded_rect(sb_x, sb_y, sb_w, 28, 6, Color::new(10, 9, 7));
-    gfx.draw_rect_outline(sb_x, sb_y, sb_w, 28, Color::ROYAL_GOLD, 1);
-    if search_str.is_empty() {
-        gfx.draw_text(sb_x + 12, sb_y + 10, "Type to search apps & games...", Color::TEXT_MUTED, 1);
-    } else {
-        gfx.draw_text(sb_x + 12, sb_y + 10, "Search: ", Color::ROYAL_GOLD, 1);
-        gfx.draw_text(sb_x + 76, sb_y + 10, search_str, Color::WHITE, 1);
-    }
+    search_field.render(gfx, sb_x, sb_y, sb_w, 28, "Type to search apps & games... (Enter to launch)", true);
+    let search_str = search_field.as_str();
 
     // Left Category Sidebar
     let side_x = lx + 14;
@@ -1413,7 +1561,106 @@ fn render_app_launcher(
     }
 }
 
-/// Handle mouse drag / move updates (for smooth window dragging)
+fn quick_settings_rect(screen_w: usize, screen_h: usize) -> (usize, usize, usize, usize) {
+    let qw: usize = 310;
+    let qh: usize = 290;
+    let qx = screen_w.saturating_sub(qw + 12);
+    let qy = screen_h.saturating_sub(TASKBAR_H + qh + 10);
+    (qx, qy, qw, qh)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn render_quick_settings(
+    gfx: &mut GraphicsEngine,
+    screen_w: usize,
+    screen_h: usize,
+    wifi_view: bool,
+    eth_up: bool,
+    night_light: bool,
+    energy_saver: bool,
+    volume_muted: bool,
+    volume_level: usize,
+    brightness_level: usize,
+    wifi_pass_field: &TextField,
+    wifi_status_note: &str,
+) {
+    let (qx, qy, qw, qh) = quick_settings_rect(screen_w, screen_h);
+    gfx.fill_rounded_rect(qx + 4, qy + 4, qw, qh, 10, Color::with_alpha(0, 0, 0, 180));
+    gfx.fill_rounded_rect(qx, qy, qw, qh, 10, Color::with_alpha(18, 15, 11, 248));
+    gfx.draw_rect_outline(qx, qy, qw, qh, Color::BRIGHT_GOLD, 1);
+
+    if wifi_view {
+        let pci = PCI.lock();
+        let wifi_det = pci.wifi_detected;
+        let wifi_chip = pci.wifi_chipset;
+        let wifi_fw = pci.wifi_firmware_req;
+        drop(pci);
+
+        gfx.draw_text(qx + 14, qy + 14, "< Back   Wi-Fi Quick Panel", Color::BRIGHT_GOLD, 1);
+        gfx.fill_rect(qx + 10, qy + 30, qw - 20, 1, Color::DARK_GOLD);
+
+        gfx.draw_text(qx + 14, qy + 42, "Hardware:", Color::ROYAL_GOLD, 1);
+        let chip_clip = if wifi_chip.len() > 26 { &wifi_chip[..26] } else { wifi_chip };
+        gfx.draw_text(qx + 14, qy + 58, if wifi_det { chip_clip } else { "No PCI Wi-Fi Adapter" },
+            if wifi_det { Color::SUCCESS_GREEN } else { Color::ROYAL_AMBER }, 1);
+        gfx.draw_text(qx + 14, qy + 78, "Firmware:", Color::ROYAL_GOLD, 1);
+        let fw_clip = if wifi_fw.len() > 26 { &wifi_fw[..26] } else { wifi_fw };
+        gfx.draw_text(qx + 14, qy + 94, fw_clip, Color::ROYAL_SAND, 1);
+
+        gfx.draw_text(qx + 14, qy + 120, "Passphrase (Masked):", Color::ROYAL_GOLD, 1);
+        wifi_pass_field.render(gfx, qx + 14, qy + 136, qw - 28, 26, "Type password...", true);
+        let note_clip = if wifi_status_note.len() > 34 { &wifi_status_note[..34] } else { wifi_status_note };
+        gfx.draw_text(qx + 14, qy + 170, note_clip, Color::TEXT_MUTED, 1);
+
+        // Open Full Network Manager button
+        gfx.fill_rounded_rect(qx + 14, qy + qh - 42, qw - 28, 28, 6, Color::new(56, 44, 18));
+        gfx.draw_rect_outline(qx + 14, qy + qh - 42, qw - 28, 28, Color::ROYAL_GOLD, 1);
+        gfx.draw_text(qx + 42, qy + qh - 32, "Open Network Manager", Color::BRIGHT_GOLD, 1);
+        return;
+    }
+
+    // 2x2 Windows-11-inspired Royal Quick Toggle Tiles
+    let tw = (qw - 36) / 2;
+    let th = 46usize;
+    let tiles = [
+        (qx + 14, qy + 16, "Wi-Fi  >", false),
+        (qx + 22 + tw, qy + 16, if eth_up { "Eth: UP" } else { "Eth: OFF" }, eth_up),
+        (qx + 14, qy + 72, "Energy Saver", energy_saver),
+        (qx + 22 + tw, qy + 72, "Night Light", night_light),
+    ];
+    for (tx, ty, lbl, active) in tiles {
+        gfx.fill_rounded_rect(tx, ty, tw, th, 6, if active { Color::new(82, 64, 20) } else { Color::new(28, 23, 17) });
+        gfx.draw_rect_outline(tx, ty, tw, th, if active { Color::BRIGHT_GOLD } else { Color::DARK_GOLD }, 1);
+        gfx.draw_text(tx + 12, ty + 18, lbl, if active { Color::BRIGHT_GOLD } else { Color::WHITE }, 1);
+    }
+
+    // Brightness Slider
+    let sx = qx + 16;
+    let sw = qw - 32;
+    let by = qy + 142;
+    gfx.draw_text(sx, by - 14, "Brightness", Color::ROYAL_SAND, 1);
+    gfx.fill_rounded_rect(sx, by, sw, 10, 4, Color::new(34, 28, 20));
+    let bw = (sw * brightness_level.min(100)) / 100;
+    gfx.fill_rounded_rect(sx, by, bw.max(8), 10, 4, Color::ROYAL_GOLD);
+
+    // Volume Slider
+    let vy = qy + 188;
+    gfx.draw_text(sx, vy - 14, if volume_muted { "Volume (Muted)" } else { "Volume" }, Color::ROYAL_SAND, 1);
+    gfx.fill_rounded_rect(sx, vy, sw, 10, 4, Color::new(34, 28, 20));
+    let vw = if volume_muted { 0 } else { (sw * volume_level.min(100)) / 100 };
+    if vw > 0 {
+        gfx.fill_rounded_rect(sx, vy, vw.max(8), 10, 4, Color::BRIGHT_GOLD);
+    }
+
+    // Bottom status strip: Battery + Settings button
+    gfx.fill_rect(qx + 10, qy + qh - 46, qw - 20, 1, Color::DARK_GOLD);
+    gfx.draw_text(qx + 16, qy + qh - 30, "BAT: 99% AC", Color::SUCCESS_GREEN, 1);
+    gfx.fill_rounded_rect(qx + qw - 104, qy + qh - 36, 90, 24, 5, Color::new(42, 34, 18));
+    gfx.draw_rect_outline(qx + qw - 104, qy + qh - 36, 90, 24, Color::ROYAL_GOLD, 1);
+    gfx.draw_text(qx + qw - 92, qy + qh - 28, "Settings", Color::BRIGHT_GOLD, 1);
+}
+
+/// Handle mouse drag & resize updates
 pub fn handle_mouse_move(mouse_x: usize, mouse_y: usize, left_down: bool) -> bool {
     let (screen_w, screen_h) = {
         let g = GRAPHICS.lock();
@@ -1423,6 +1670,19 @@ pub fn handle_mouse_move(mouse_x: usize, mouse_y: usize, left_down: bool) -> boo
         return false;
     }
     let mut d = DESKTOP.lock();
+    if let Some(slot) = d.resizing_slot {
+        if !left_down {
+            d.resizing_slot = None;
+            return false;
+        }
+        let wx = d.windows[slot].x;
+        let wy = d.windows[slot].y;
+        let new_w = mouse_x.saturating_sub(wx).clamp(420, screen_w.saturating_sub(wx + 4));
+        let new_h = mouse_y.saturating_sub(wy).clamp(260, screen_h.saturating_sub(TASKBAR_H + wy + 4));
+        d.windows[slot].w = new_w;
+        d.windows[slot].h = new_h;
+        return true;
+    }
     if let Some(slot) = d.dragging_slot {
         if !left_down {
             d.dragging_slot = None;
@@ -1488,15 +1748,23 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
     let tb_y = screen_h.saturating_sub(TASKBAR_H);
     if mouse_y >= tb_y {
         let tray_x = screen_w.saturating_sub(196);
-        // System Tray: Network icon
-        if mouse_x >= tray_x && mouse_x < tray_x + 24 {
-            DESKTOP.lock().open_or_focus_app(ActiveApp::NetworkManager, screen_w, screen_h);
-            return;
-        }
-        // System Tray: Volume icon (mute toggle)
-        if mouse_x >= tray_x + 24 && mouse_x < tray_x + 48 {
+        // System Tray click -> toggle Windows-11-style Quick Settings & Wi-Fi flyout!
+        if mouse_x >= tray_x {
             let mut d = DESKTOP.lock();
-            d.volume_muted = !d.volume_muted;
+            if mouse_x < tray_x + 26 {
+                // Clicking Wi-Fi icon opens Quick Settings directly on Wi-Fi panel
+                if d.quick_settings_open && d.qs_wifi_view {
+                    d.quick_settings_open = false;
+                } else {
+                    d.quick_settings_open = true;
+                    d.qs_wifi_view = true;
+                    d.launcher_open = false;
+                }
+            } else {
+                d.quick_settings_open = !d.quick_settings_open;
+                d.qs_wifi_view = false;
+                d.launcher_open = false;
+            }
             return;
         }
 
@@ -1559,6 +1827,75 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
         }
     }
 
+    // 3b. Quick Settings Flyout clicks
+    {
+        let mut d = DESKTOP.lock();
+        if d.quick_settings_open {
+            let (qx, qy, qw, qh) = quick_settings_rect(screen_w, screen_h);
+            if mouse_x < qx || mouse_x > qx + qw || mouse_y < qy || mouse_y > qy + qh {
+                d.quick_settings_open = false;
+                d.qs_wifi_view = false;
+            } else {
+                if d.qs_wifi_view {
+                    if mouse_y < qy + 32 {
+                        d.qs_wifi_view = false;
+                        return;
+                    }
+                    if mouse_y >= qy + qh - 42 {
+                        d.quick_settings_open = false;
+                        d.qs_wifi_view = false;
+                        d.open_or_focus_app(ActiveApp::NetworkManager, screen_w, screen_h);
+                        return;
+                    }
+                    return;
+                }
+                let tw = (qw - 36) / 2;
+                let th = 46usize;
+                // Tile 1: Wi-Fi >
+                if mouse_x >= qx + 14 && mouse_x < qx + 14 + tw && mouse_y >= qy + 16 && mouse_y < qy + 16 + th {
+                    d.qs_wifi_view = true;
+                    return;
+                }
+                // Tile 2: Ethernet -> Network Manager
+                if mouse_x >= qx + 22 + tw && mouse_x < qx + 22 + tw * 2 && mouse_y >= qy + 16 && mouse_y < qy + 16 + th {
+                    d.quick_settings_open = false;
+                    d.open_or_focus_app(ActiveApp::NetworkManager, screen_w, screen_h);
+                    return;
+                }
+                // Tile 3: Energy Saver toggle
+                if mouse_x >= qx + 14 && mouse_x < qx + 14 + tw && mouse_y >= qy + 72 && mouse_y < qy + 72 + th {
+                    d.energy_saver = !d.energy_saver;
+                    return;
+                }
+                // Tile 4: Night Light toggle
+                if mouse_x >= qx + 22 + tw && mouse_x < qx + 22 + tw * 2 && mouse_y >= qy + 72 && mouse_y < qy + 72 + th {
+                    d.night_light = !d.night_light;
+                    return;
+                }
+                // Brightness slider
+                let sx = qx + 16;
+                let sw = qw - 32;
+                if mouse_x >= sx && mouse_x <= sx + sw && mouse_y >= qy + 136 && mouse_y <= qy + 158 {
+                    d.brightness_level = (((mouse_x - sx) * 100) / sw).clamp(15, 100);
+                    return;
+                }
+                // Volume slider
+                if mouse_x >= sx && mouse_x <= sx + sw && mouse_y >= qy + 182 && mouse_y <= qy + 204 {
+                    d.volume_level = (((mouse_x - sx) * 100) / sw).min(100);
+                    d.volume_muted = d.volume_level == 0;
+                    return;
+                }
+                // Settings shortcut
+                if mouse_x >= qx + qw - 104 && mouse_y >= qy + qh - 36 {
+                    d.quick_settings_open = false;
+                    d.open_or_focus_app(ActiveApp::Settings, screen_w, screen_h);
+                    return;
+                }
+                return;
+            }
+        }
+    }
+
     // 4. App Launcher Overlay clicks
     {
         let mut d = DESKTOP.lock();
@@ -1605,10 +1942,9 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
             let cell_w: usize = 108;
             let cell_h: usize = 74;
             let cols: usize = 4;
-            let search_buf = d.search_buf;
-            let search_len = d.search_len;
+            let s_field = d.search_field;
             let active_cat = d.launcher_category;
-            let search_str = core::str::from_utf8(&search_buf[..search_len]).unwrap_or("");
+            let search_str = s_field.as_str();
 
             let mut shown = 0usize;
             for entry in LAUNCHER_ENTRIES {
@@ -1629,7 +1965,7 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
                     if let Some(gt) = entry.game {
                         GAMES.lock().current_game = gt;
                     }
-                    d.search_len = 0;
+                    d.search_field.clear();
                     d.open_or_focus_app(entry.app, screen_w, screen_h);
                     return;
                 }
@@ -1666,6 +2002,12 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
 
         let win = d.windows[slot];
         let title_h: usize = 32;
+
+        // Bottom-right window resize grip
+        if !win.maximized && mouse_x >= win.x + win.w - 18 && mouse_y >= win.y + win.h - 18 {
+            d.resizing_slot = Some(slot);
+            return;
+        }
 
         // Title bar controls (Minimize, Maximize/Restore, Close, or Drag)
         if mouse_y < win.y + title_h {
@@ -1704,6 +2046,11 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
         let cy = win.y + title_h + 12;
 
         match win.app {
+            ActiveApp::Browser => {
+                drop(d);
+                BROWSER.lock().handle_click(mouse_x, mouse_y, win.x, win.y, win.w);
+                return;
+            }
             ActiveApp::Calculator => {
                 let calc_w: usize = 296;
                 let calc_x = win.x + win.w.saturating_sub(calc_w) / 2;
