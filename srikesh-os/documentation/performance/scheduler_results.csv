@@ -1,0 +1,3 @@
+Boot_Mode,Context_Switches,Task1_Dispatches,Task2_Dispatches,Quantum_Ticks,PIT_Frequency_Hz,Time_Slice_ms,Boot_Duration_ms
+BIOS,58,30,29,5,100,50.0,3229
+UEFI,58,30,29,5,100,50.0,3319

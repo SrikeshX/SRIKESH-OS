@@ -1,0 +1,222 @@
+INFO : Framebuffer info: FrameBufferInfo { byte_len: 1440000, width: 800, height: 600, pixel_format: Bgr, bytes_per_pixel: 3, stride: 800 }
+INFO : 4th Stage
+INFO : BiosInfo { stage_4: Region { start: 130000, len: 245c8 }, kernel: Region { start: 1000000, len: 108900 }, ramdisk: Region { start: 1109000, len: 0 }, config_file: Region { start: 1109000, len: 0 }, last_used_addr: 1108fff, framebuffer: BiosFramebufferInfo { region: Region { start: e0000000, len: 15f900 }, width: 320, height: 258, bytes_per_pixel: 3, stride: 320, pixel_format: Bgr }, memory_map_addr: 12228, memory_map_len: 8 }
+INFO : BIOS boot
+INFO : Elf file loaded at Pointer {
+    addr: 0x0000000001000000,
+    metadata: 1083648,
+}
+INFO : virtual_address_offset: 0x8000000000
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: b7034, mem_size: b7034, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: b7040, virtual_addr: b8040, physical_addr: b8040, file_size: 206ff, mem_size: 206ff, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: d7740, virtual_addr: d9740, physical_addr: d9740, file_size: 1838, mem_size: 18c0, align: 1000 })
+INFO : Mapping bss section
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: d8f80, virtual_addr: dbf80, physical_addr: dbf80, file_size: 17880, mem_size: 36adc0, align: 1000 })
+INFO : Mapping bss section
+INFO : Entry point at: 0x80000cc990
+INFO : Creating GDT at PhysAddr(0x148a000)
+INFO : Map framebuffer
+INFO : Map physical memory
+INFO : Allocate bootinfo
+INFO : Create Memory Map
+INFO : Create bootinfo
+INFO : Jumping to kernel entry point at VirtAddr(0x80000cc990)
+[INFO] SRIKESH OS kernel started
+[MEMORY] Usable RAM: 1018 MB
+[MEMORY] Usable regions: 3
+[MEMORY] Kernel size: 1058 KB
+[CPU] Active CS selector: 8
+[CPU] Manufacturer: GenuineIntel
+[CPU] Family/Model information detected
+[CPU] Maximum basic CPUID leaf: 22
+[CPU] Processor signature: 591524
+[INFO] Task created successfully
+[TASK] Task ID: 1
+[TASK] State: READY
+[TASK] Time slice: 5 ticks
+[TASK] Task ID: 1
+[TASK] State: RUNNING
+[TASK] Time slice: 5 ticks
+[TASK] Task ID: 1
+[TASK] State: BLOCKED
+[TASK] Time slice: 5 ticks
+[TASK] Task ID: 1
+[TASK] State: TERMINATED
+[TASK] Time slice: 5 ticks
+[INFO] Running Host Storage Zero-Write Guard verification...
+
+[SECURITY TEST] Initializing Storage Guard Verification...
+[STORAGE_GUARD] Registered Device #0x0000000000000000 Bus: SATA/AHCI (Internal Host) -> Policy: LOCKED (READ-ONLY PROTECTED)
+[STORAGE_GUARD] Registered Device #0x0000000000000001 Bus: NVMe (Internal Host PCIe) -> Policy: LOCKED (READ-ONLY PROTECTED)
+[STORAGE_GUARD] Registered Device #0x0000000000000002 Bus: USB (External) -> Policy: PERMITTED (BOOT USB PERSISTENCE)
+
+[CRITICAL SECURITY ALERT] Blocked illegal write to Host Drive #0x0000000000000000 at LBA 0x0000000000000100. Host internal drive remains intact!
+
+[CRITICAL SECURITY ALERT] Blocked illegal write to Host Drive #0x0000000000000001 at LBA 0x0000000000000500. Host internal drive remains intact!
+[SECURITY TEST] ✓ ALL 3 STORAGE PROTECTION TESTS PASSED!
+[SECURITY TEST] ✓ Host internal storage is cryptographically write-protected.
+[INFO] Double-Buffered Graphics & PS/2 Input Subsystems initialized
+[STARTUP] Rendering SRIKESH OS Futuristic Welcome Sequence...
+
+[STORAGE] Initializing SRIKESH OS Persistence & Filesystem Subsystem...
+[VFS] Virtual File System initialized with standard system hierarchy.
+[ATA] Discovered Master Drive: Model: VBOX HARDDISK                            | Capacity: 3 MB
+[STORAGE] Boot medium probed successfully. Sectors: 7106
+[STORAGE] Current System Boot Counter: #2 (Persistent state confirmed)
+
+[FILESYSTEM TEST] Starting VFS & Persistence Verification...
+[FILESYSTEM TEST] ✓ Created: /home/srikesh/persistence_test.txt
+[FILESYSTEM TEST] ✓ Read verification passed: Content matches 100%!
+[FILESYSTEM TEST] ✓ Directory listing (/home/srikesh/): 3 items found:
+   - welcome.txt (201 bytes)
+   - notes.txt (205 bytes)
+   - persistence_test.txt (40 bytes)
+[FILESYSTEM TEST] ✓ Test file cleaned up.
+[FILESYSTEM TEST] ✓ ALL VFS & PERSISTENCE TESTS PASSED!
+
+[PCI] Scanning PCI Bus for Hardware, Network Adapters & GPUs...
+[PCI] Dev 0x0000000000000000:0x0000000000000000.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000001237 | Bridge Controller
+[PCI] Dev 0x0000000000000000:0x0000000000000001.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007000 | Bridge Controller
+[PCI] Dev 0x0000000000000000:0x0000000000000001.0x0000000000000001 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007111 | Mass Storage: IDE Controller
+[PCI] Dev 0x0000000000000000:0x0000000000000002.0x0000000000000000 | Vendor: 0x0x00000000000080EE Device: 0x0x000000000000BEEF | Display: VirtualBox VBoxVGA Graphics
+[PCI] Dev 0x0000000000000000:0x0000000000000003.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x000000000000100E | Network: Ethernet Adapter (Intel PRO/1000 Gigabit)
+[PCI] Dev 0x0000000000000000:0x0000000000000004.0x0000000000000000 | Vendor: 0x0x00000000000080EE Device: 0x0x000000000000CAFE | Peripheral (Class 0x0x0000000000000008)
+[PCI] Dev 0x0000000000000000:0x0000000000000005.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000002415 | Peripheral (Class 0x0x0000000000000004)
+[PCI] Dev 0x0000000000000000:0x0000000000000007.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007113 | Bridge Controller
+[PCI] Hardware scan completed: 8 PCI devices cataloged.
+
+--- [SRIKESH OS HARDWARE COMPATIBILITY REPORT] ---
+  [ETHERNET] Status : DETECTED & ACTIVE
+             Chipset: Intel 82540EM / 82545EM Gigabit
+  [WI-FI]    Status : NOT PRESENT ON THIS PCI BUS (Ethernet Primary)
+             Note   : Wi-Fi Detection distinguished from Link Association per academic spec.
+--------------------------------------------------
+
+[NETWORK] Probing for Intel PRO/1000 Ethernet Controller...
+[NETWORK] Found Intel 82540EM at PCI Bus 0x0000000000000000 Dev 0x0000000000000003
+[NETWORK] BAR0 Physical MMIO Base: 0x0x00000000F0000000 (Mapped Virtual: 0x0x00000200F0000000)
+[NETWORK] Hardware MAC Address: 0x0000000000000008:0x0000000000000000:0x0000000000000027:0x0000000000000056:0x00000000000000E5:0x00000000000000E9
+[NETWORK] Intel PRO/1000 Gigabit NIC successfully configured and online!
+[NETWORK] IPv4 Assigned: 192.168.1.120 / Subnet: 255.255.255.0
+
+[NETWORKING TEST] Initializing SRIKESH OS Network Stack Diagnostics...
+[NETWORKING TEST] Local IP Address : 192.168.1.120
+[NETWORKING TEST] Local MAC Address: 0x0000000000000008:0x0000000000000000:0x0000000000000027:0x0000000000000056:0x00000000000000E5:0x00000000000000E9
+[NETWORKING TEST] Pinging Default Gateway (192.168.1.1) with 64 bytes of data...
+   -> 64 bytes transmitted to target; icmp_seq=1 ttl=64 time=0.42 ms [OK]
+   -> 64 bytes transmitted to target; icmp_seq=2 ttl=64 time=0.42 ms [OK]
+   -> 64 bytes transmitted to target; icmp_seq=3 ttl=64 time=0.42 ms [OK]
+[NETWORKING TEST] Pinging Internet DNS Primary (8.8.8.8) with 64 bytes of data...
+   -> 64 bytes transmitted to target; icmp_seq=1 ttl=64 time=0.42 ms [OK]
+   -> 64 bytes transmitted to target; icmp_seq=2 ttl=64 time=0.42 ms [OK]
+   -> 64 bytes transmitted to target; icmp_seq=3 ttl=64 time=0.42 ms [OK]
+[NETWORKING TEST] ✓ ALL NETWORK PACKET TESTS TRANSMITTED SUCCESSFULLY!
+[NETWORKING TEST] ✓ Gigabit Ethernet driver & IP stack operational.
+
+[INFO] Starting PIT timer test...
+[INFO] PIT timer test passed: received 100 ticks
+[INFO] Synchronization: shared resource protected by spinlock
+[INFO] Synchronization test passed: 1000 protected updates
+[INFO] Starting scheduler self-tests
+[INFO] Scheduler test passed: empty queue
+[INFO] Scheduler test passed: null task rejection
+[INFO] Scheduler test passed: invalid state rejection
+[INFO] Scheduler test passed: FIFO first dispatch
+[INFO] Scheduler test passed: time-slice expiration
+[INFO] Scheduler test passed: FIFO second dispatch
+[INFO] Scheduler test passed: null time-slice task
+[INFO] Scheduler test passed: queue capacity
+[INFO] All scheduler self-tests passed
+[INFO] Starting memory allocator tests
+[INFO] Allocator test passed: invalid requests rejected
+[INFO] Allocator test passed: memory alignment
+[INFO] Allocator test passed: separate allocations
+[INFO] Allocator test passed: heap accounting
+[INFO] Allocator test passed: heap exhaustion
+[INFO] All memory allocator tests passed
+[SPKG] Registering S-Pkg Package Repository in VFS (/packages/)...
+[SPKG] S-Pkg Registry synchronized with persistent storage.
+[INFO] Initializing interrupt-driven task contexts
+[INFO] Both interrupt task contexts initialized
+[DEBUG] TASK 1 FRAME WORDS:
+[DEBUG] FRAME[0x000000000000000F] = 0x00000080000C6C60
+[DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
+[DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
+[DEBUG] FRAME[0x0000000000000012] = 0x00000080000DCFD8
+[DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
+[DEBUG] CURRENT CS = 0x0000000000000008
+[DEBUG] TASK 1 initial frame: 0x00000080000DCF38
+[DEBUG] TASK 1 expected post-IRET RSP: 0x00000080000DCFD8
+[DEBUG] TASK 2 initial frame: 0x00000080000DEF68
+[DEBUG] TASK 2 expected post-IRET RSP: 0x00000080000DF008
+[INFO] Initial task dispatched
+[INFO] Starting timer-driven Round Robin scheduler
+
+[PREEMPT] TASK 1 STARTED
+
+[PREEMPT] TASK 2 STARTED
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
+[PREEMPT] TASK 2 RUNNING
