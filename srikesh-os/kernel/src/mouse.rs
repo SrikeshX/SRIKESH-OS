@@ -91,7 +91,22 @@ impl MouseDriver {
         port.read()
     }
 
-    /// Initialize the PS/2 mouse on the 8042 controller
+    /// Read one byte with a custom spin-loop iteration timeout.
+    /// Returns 0x00 if no data arrives within `timeout` iterations.
+    unsafe fn read_data_timeout(&self, timeout: u32) -> u8 {
+        let mut status = Port::<u8>::new(STATUS_PORT);
+        let mut data   = Port::<u8>::new(DATA_PORT);
+        for _ in 0..timeout {
+            if (status.read() & 0x01) != 0 {
+                return data.read();
+            }
+        }
+        0x00 // timeout — treat as silent ACK
+    }
+
+    /// Initialize the PS/2 mouse on the 8042 controller.
+    /// Uses conservative timeouts so the kernel never hangs on hardware
+    /// without a legacy PS/2 mouse (e.g. Dell Vostro 3520 with USB/I2C touchpad).
     pub fn init(&mut self) {
         unsafe {
             // Enable auxiliary device
@@ -99,28 +114,27 @@ impl MouseDriver {
 
             // Read controller command byte
             self.write_cmd(0x20);
-            let mut status = self.read_data();
-            // Enable IRQ 12 and clear disable-mouse bit
-            status |= 0x02;
-            status &= !0x20;
-
-            // Write back updated command byte
+            let mut ccb = self.read_data_timeout(2000);
+            // Enable IRQ 12, clear disable-mouse bit
+            ccb |= 0x02;
+            ccb &= !0x20;
+            // Write back
             self.write_cmd(0x60);
-            self.write_data(status);
+            self.write_data(ccb);
 
-            // Send Reset command to mouse
+            // Send Reset — read up to 3 ACK bytes with timeout
             self.write_mouse(0xFF);
-            let _ = self.read_data(); // ACK 0xFA
-            let _ = self.read_data(); // Self-test 0xAA
-            let _ = self.read_data(); // Device ID 0x00
+            let _ack1 = self.read_data_timeout(5000); // ACK 0xFA or timeout
+            let _sts  = self.read_data_timeout(5000); // Self-test 0xAA or timeout
+            let _id   = self.read_data_timeout(2000); // Device ID 0x00 or timeout
 
             // Set default settings
             self.write_mouse(0xF6);
-            let _ = self.read_data(); // ACK
+            let _ack2 = self.read_data_timeout(2000); // ACK
 
             // Enable data streaming
             self.write_mouse(0xF4);
-            let _ = self.read_data(); // ACK
+            let _ack3 = self.read_data_timeout(2000); // ACK
         }
     }
 

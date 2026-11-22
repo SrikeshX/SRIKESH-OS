@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003d121000,
-    metadata: 3773600,
+    addr: 0x000000003d015000,
+    metadata: 3779336,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e4f24, mem_size: e4f24, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e4f30, virtual_addr: e5f30, physical_addr: e5f30, file_size: 2ff5f, mem_size: 2ff5f, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 114e90, virtual_addr: 116e90, physical_addr: 116e90, file_size: 1fd0, mem_size: 2170, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e50a4, mem_size: e50a4, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e50b0, virtual_addr: e60b0, physical_addr: e60b0, file_size: 3106f, mem_size: 3106f, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 116120, virtual_addr: 118120, physical_addr: 118120, file_size: 2070, mem_size: 2ee0, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 116e60, virtual_addr: 119e60, physical_addr: 119e60, file_size: 262998, mem_size: 1291ef0, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 118190, virtual_addr: 11b190, physical_addr: 11b190, file_size: 262998, mem_size: 1291b50, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x800010b750
-INFO : Creating GDT at PhysAddr(0x1170000)
+INFO : Entry point at: 0x800010d7d0
+INFO : Creating GDT at PhysAddr(0x116f000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x800010b750)
+INFO : Jumping to kernel entry point at VirtAddr(0x800010d7d0)
 [INFO] SRIKESH OS kernel started
 [MEMORY] Usable RAM: 984 MB
 [MEMORY] Usable regions: 98
-[MEMORY] Kernel size: 3685 KB
+[MEMORY] Kernel size: 3690 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -95,12 +95,13 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800010b750)
 [PCI] Dev 0x0000000000000000:0x0000000000000000.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000001237 | Bridge Controller
 [PCI] Dev 0x0000000000000000:0x0000000000000001.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007000 | Bridge Controller
 [PCI] Dev 0x0000000000000000:0x0000000000000001.0x0000000000000001 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007111 | Mass Storage: IDE Controller
-[PCI] Dev 0x0000000000000000:0x0000000000000002.0x0000000000000000 | Vendor: 0x0x00000000000080EE Device: 0x0x000000000000BEEF | Display: VirtualBox VBoxVGA Graphics
+[PCI] Dev 0x0000000000000000:0x0000000000000002.0x0000000000000000 | Vendor: 0x0x00000000000015AD Device: 0x0x0000000000000405 | Display: VMware SVGA II Graphics
 [PCI] Dev 0x0000000000000000:0x0000000000000003.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x000000000000100E | Network: Ethernet Adapter (Intel PRO/1000 Gigabit)
 [PCI] Dev 0x0000000000000000:0x0000000000000004.0x0000000000000000 | Vendor: 0x0x00000000000080EE Device: 0x0x000000000000CAFE | Peripheral (Class 0x0x0000000000000008)
 [PCI] Dev 0x0000000000000000:0x0000000000000005.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000002415 | Peripheral (Class 0x0x0000000000000004)
 [PCI] Dev 0x0000000000000000:0x0000000000000007.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007113 | Bridge Controller
-[PCI] Hardware scan completed: 8 PCI devices cataloged.
+[PCI] Dev 0x0000000000000000:0x000000000000000D.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000002829 | Mass Storage: SATA AHCI Controller
+[PCI] Hardware scan completed: 9 PCI devices cataloged.
 
 --- [SRIKESH OS HARDWARE COMPATIBILITY REPORT] ---
   [ETHERNET] Status : DETECTED & ACTIVE
@@ -111,7 +112,7 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800010b750)
 
 [NETWORK] Probing for Intel PRO/1000 Ethernet Controller...
 [NETWORK] Found Intel 82540EM at PCI Bus 0x0000000000000000 Dev 0x0000000000000003
-[NETWORK] BAR0 Physical MMIO Base: 0x0x0000000082400000 (Mapped Virtual: 0x0x0000020082400000)
+[NETWORK] BAR0 Physical MMIO Base: 0x0x0000000084600000 (Mapped Virtual: 0x0x0000020084600000)
 [NETWORK] Hardware MAC Address: 0x0000000000000008:0x0000000000000000:0x0000000000000027:0x0000000000000056:0x00000000000000E5:0x00000000000000E9
 [NETWORK] Intel PRO/1000 Gigabit NIC successfully configured and online!
 [NETWORK] IPv4 Assigned: 192.168.1.120 / Subnet: 255.255.255.0
@@ -190,27 +191,34 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800010b750)
 ==============================================================
 
 --- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
-  [TSC] Cycles from Kernel Entry to Desktop: 21390679915 cycles
+  [TSC] Cycles from Kernel Entry to Desktop: 25377232496 cycles
   [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
-  [TSC] Approx Duration at nominal 3.0 GHz : 7130 ms
+  [TSC] Approx Duration at nominal 3.0 GHz : 8459 ms
 ---------------------------------------------------
 
 [INFO] Initializing interrupt-driven task contexts
 [INFO] Both interrupt task contexts initialized
 [DEBUG] TASK 1 FRAME WORDS:
-[DEBUG] FRAME[0x000000000000000F] = 0x00000080001089F0
+[DEBUG] FRAME[0x000000000000000F] = 0x000000800010AD80
 [DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
 [DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
-[DEBUG] FRAME[0x0000000000000012] = 0x000000800024BFE8
+[DEBUG] FRAME[0x0000000000000012] = 0x000000800022D5F8
 [DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
 [DEBUG] CURRENT CS = 0x0000000000000008
-[DEBUG] TASK 1 initial frame: 0x000000800024BF48
-[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800024BFE8
-[DEBUG] TASK 2 initial frame: 0x000000800026BF78
-[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800026C018
+[DEBUG] TASK 1 initial frame: 0x000000800022D558
+[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800022D5F8
+[DEBUG] TASK 2 initial frame: 0x000000800024D588
+[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800024D628
 [INFO] Initial task dispatched
 [INFO] Starting timer-driven Round Robin scheduler
 
 [PREEMPT] TASK 1 STARTED
 
 [PREEMPT] TASK 2 STARTED
+
+[PERFORMANCE] Scheduler runtime snapshot
+[PERFORMANCE] Context switches: 28
+[PERFORMANCE] Task 1 dispatches: 16
+[PERFORMANCE] Task 2 dispatches: 15
+[PERFORMANCE] Scheduler quantum: 5 ticks
+[PREEMPT] TASK 1 RUNNING

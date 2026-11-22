@@ -81,7 +81,7 @@ impl DesktopManager {
         }
 
         Self {
-            active_app: ActiveApp::Terminal,
+            active_app: ActiveApp::DesktopOnly,   // FIX: Boot directly to desktop, NOT Terminal
             term_cursor_visible: true,
             term_ticks: 0,
             selected_file_idx: 0,
@@ -492,15 +492,55 @@ pub fn render_desktop_frame() {
         }
     }
 
-    // 4. Bottom Egyptian Royal Dock (Centered, Dynamic Width & Height)
+    // 4. Desktop Icons (shown when no window is open)
+    if app == ActiveApp::DesktopOnly {
+        let icon_start_x = if is_large { 60usize } else { 40usize };
+        let icon_start_y = bar_h + 30;
+        let icon_w: usize = if is_large { 100 } else { 86 };
+        let icon_h: usize = if is_large { 72 } else { 60 };
+        let icon_gap: usize = if is_large { 18 } else { 12 };
+
+        // (line1, line2) for each desktop icon
+        let desktop_icons: &[(&str, &str)] = &[
+            ("[F]", "Files"),
+            ("[T]", "Term"),
+            ("[B]", "Browse"),
+            ("[S]", "Settings"),
+            ("[M]", "Monitor"),
+        ];
+
+        for (col, &(line1, line2)) in desktop_icons.iter().enumerate() {
+            let ix = icon_start_x + col * (icon_w + icon_gap);
+            let iy = icon_start_y;
+
+            // Icon background glass tile
+            gfx.fill_rounded_rect(ix, iy, icon_w, icon_h, 8, Color::new(18, 14, 10));
+            gfx.draw_rect_outline(ix, iy, icon_w, icon_h, Color::DARK_GOLD, 1);
+
+            let l1w = line1.chars().count() * 8;
+            let l2w = line2.chars().count() * 8;
+            let lx1 = ix + icon_w.saturating_sub(l1w) / 2;
+            let lx2 = ix + icon_w.saturating_sub(l2w) / 2;
+            gfx.draw_text(lx1, iy + 14, line1, Color::BRIGHT_GOLD, 1);
+            gfx.draw_text(lx2, iy + 30, line2, Color::WHITE, 1);
+        }
+
+        // Desktop hint bar
+        let hint_y = bar_h + if is_large { 20 } else { 14 };
+        let hint_text = "Click a dock icon  |  Press F1-F6 for apps  |  ESC to close window";
+        let hint_x = screen_w.saturating_sub(hint_text.chars().count() * 8) / 2;
+        gfx.draw_text(hint_x, hint_y, hint_text, Color::new(100, 85, 60), 1);
+    }
+
+    // 5. Bottom Egyptian Royal Dock (Centered, Dynamic Width & Height)
     let dock_w = ((screen_w * 90) / 100).min(1720);
     let dock_h = if is_large { 60 } else { 52 };
     let dock_x = (screen_w - dock_w) / 2;
     let dock_y = screen_h.saturating_sub(dock_h + if is_large { 16 } else { 12 });
 
-    // Frosted royal dock background
+    // Frosted royal dock background with subtle gradient effect
     gfx.fill_rounded_rect(dock_x, dock_y, dock_w, dock_h, 12, Color::new(14, 11, 8));
-    gfx.draw_rect_outline(dock_x, dock_y, dock_w, dock_h, Color::ROYAL_GOLD, 1);
+    gfx.draw_rect_outline(dock_x, dock_y, dock_w, dock_h, Color::ROYAL_GOLD, 2);
     gfx.draw_rect_outline(dock_x + 2, dock_y + 2, dock_w - 4, dock_h - 4, Color::DARK_GOLD, 1);
 
     // Dock Icons: Browser, Terminal, Files, Editor, Calc, Net, Games, Monitor, Settings, Store, About
@@ -523,31 +563,58 @@ pub fn render_desktop_frame() {
     let by = dock_y + (dock_h - btn_h) / 2;
     let text_pad_y = (btn_h.saturating_sub(8)) / 2;
 
+    // Check mouse hover for dock highlight
+    let mouse_now = get_mouse_state();
+    let mouse_on_dock = mouse_now.y >= dock_y && mouse_now.y <= dock_y + dock_h;
+
     for (idx, &(label, target_app)) in icons.iter().enumerate() {
         let bx = dock_x + 12 + idx * btn_w;
         let is_active = target_app == app;
+        let is_hovered = mouse_on_dock && mouse_now.x >= bx && mouse_now.x <= bx + btn_w;
 
-        let bg_color = if is_active { Color::new(80, 64, 28) } else { Color::new(24, 18, 14) };
-        let border_color = if is_active { Color::BRIGHT_GOLD } else { Color::DARK_GOLD };
-        let text_color = if is_active { Color::BRIGHT_GOLD } else { Color::ROYAL_SAND };
+        let bg_color = if is_active {
+            Color::new(90, 72, 24)
+        } else if is_hovered {
+            Color::new(50, 40, 20)
+        } else {
+            Color::new(24, 18, 14)
+        };
+        let border_color = if is_active {
+            Color::BRIGHT_GOLD
+        } else if is_hovered {
+            Color::ROYAL_GOLD
+        } else {
+            Color::DARK_GOLD
+        };
+        let text_color = if is_active || is_hovered {
+            Color::BRIGHT_GOLD
+        } else {
+            Color::ROYAL_SAND
+        };
 
         gfx.fill_rounded_rect(bx + 1, by, btn_w - 4, btn_h, 6, bg_color);
         gfx.draw_rect_outline(bx + 1, by, btn_w - 4, btn_h, border_color, 1);
-        
+
+        // Active indicator dot at bottom of button
+        if is_active {
+            let dot_x = bx + btn_w / 2 - 2;
+            let dot_y = by + btn_h + 3;
+            gfx.fill_rect(dot_x, dot_y, 4, 4, Color::BRIGHT_GOLD);
+        }
+
         let label_w = label.chars().count() * 8;
         let text_x = bx + ((btn_w - 4).saturating_sub(label_w)) / 2;
         gfx.draw_text(text_x, by + text_pad_y, label, text_color, 1);
     }
 
-    // 5. Draw Hardware Mouse Cursor
-    let mouse = get_mouse_state();
-    gfx.draw_cursor(mouse.x, mouse.y);
+    // 6. Draw Hardware Mouse Cursor (always on top)
+    gfx.draw_cursor(mouse_now.x, mouse_now.y);
 
     // Swap backbuffer to physical display
     gfx.swap_buffers();
 }
 
-/// Handle mouse clicks on the dock or window controls to switch active applications
+/// Handle mouse clicks on dock buttons, window controls, and desktop icons
 pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
     let gfx = GRAPHICS.lock();
     let screen_w = gfx.width;
@@ -563,18 +630,55 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
     let win_w = if is_large { (screen_w * 84) / 100 } else { (screen_w * 78) / 100 };
     let win_x = (screen_w - win_w) / 2;
     let win_y = bar_h + 16;
-    let title_h = if is_large { 38 } else { 34 };
+    let title_h: usize = if is_large { 38 } else { 34 };
 
-    // 1. Check Window Close Button [X] (Ruby Red button at win_x + 14, win_y + 10)
     let cur_app = DESKTOP.lock().active_app;
+
+    // 1. Window control buttons (only when a window is open)
     if cur_app != ActiveApp::DesktopOnly {
-        if mouse_x >= win_x + 10 && mouse_x <= win_x + 32 && mouse_y >= win_y + 8 && mouse_y <= win_y + title_h {
+        let btn_y = win_y + (title_h.saturating_sub(14)) / 2;
+
+        // Close button [X] — Ruby Red circle at win_x+14
+        if mouse_x >= win_x + 10 && mouse_x <= win_x + 30 && mouse_y >= btn_y && mouse_y <= btn_y + 18 {
             DESKTOP.lock().active_app = ActiveApp::DesktopOnly;
             return;
         }
+        // Minimize button [−] — Gold Amber at win_x+36
+        if mouse_x >= win_x + 32 && mouse_x <= win_x + 54 && mouse_y >= btn_y && mouse_y <= btn_y + 18 {
+            DESKTOP.lock().active_app = ActiveApp::DesktopOnly;
+            return;
+        }
+        // Maximize button [+] — Emerald Green at win_x+58 (keep current app open, no-op for now)
+        // Already maximized — this is a full window compositor
     }
 
-    // 2. Check Bottom Dock
+    // 2. Desktop icons (only when in DesktopOnly view)
+    if cur_app == ActiveApp::DesktopOnly {
+        let icon_start_x = if is_large { 60usize } else { 40usize };
+        let icon_start_y = bar_h + 30;
+        let icon_w = if is_large { 100usize } else { 86 };
+        let icon_h = if is_large { 72usize } else { 60 };
+        let icon_gap = if is_large { 18usize } else { 12 };
+
+        let desktop_icon_apps = [
+            ActiveApp::FileManager,
+            ActiveApp::Terminal,
+            ActiveApp::Browser,
+            ActiveApp::Settings,
+            ActiveApp::SystemMonitor,
+        ];
+
+        for (col, target_app) in desktop_icon_apps.iter().enumerate() {
+            let ix = icon_start_x + col * (icon_w + icon_gap);
+            let iy = icon_start_y;
+            if mouse_x >= ix && mouse_x <= ix + icon_w && mouse_y >= iy && mouse_y <= iy + icon_h {
+                DESKTOP.lock().active_app = *target_app;
+                return;
+            }
+        }
+    }
+
+    // 3. Bottom dock
     let dock_w = ((screen_w * 90) / 100).min(1720);
     let dock_h = if is_large { 60 } else { 52 };
     let dock_x = (screen_w - dock_w) / 2;
@@ -601,7 +705,7 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
             if mouse_x >= bx && mouse_x <= bx + btn_w {
                 let mut d = DESKTOP.lock();
                 if d.active_app == *target_app {
-                    // Toggle minimize to desktop only
+                    // Toggle: clicking active app icon minimizes it back to desktop
                     d.active_app = ActiveApp::DesktopOnly;
                 } else {
                     d.active_app = *target_app;

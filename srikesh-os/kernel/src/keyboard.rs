@@ -162,6 +162,21 @@ pub fn handle_keyboard_interrupt() {
         0x40 => { // F6 - Games
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Games;
         }
+        0x41 => { // F7 - Calculator
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Calculator;
+        }
+        0x42 => { // F8 - Network Manager
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::NetworkManager;
+        }
+        0x43 => { // F9 - Settings
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Settings;
+        }
+        0x44 => { // F10 - About/Info
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::About;
+        }
+        0x57 => { // F11 - Desktop (minimize all / show desktop)
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
+        }
         code if (code as usize) < SCANCODE_LOWER.len() => {
             let use_upper = kb.shift_pressed ^ kb.caps_lock;
             let ch = if use_upper {

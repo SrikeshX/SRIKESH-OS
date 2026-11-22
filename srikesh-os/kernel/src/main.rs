@@ -253,35 +253,57 @@ extern "C" fn preempt_task1_entry() -> ! {
             serial::write_str("'\n");
 
             let active_app = crate::desktop::DESKTOP.lock().active_app;
-            if active_app == crate::desktop::ActiveApp::Games {
-                crate::games::GAMES.lock().handle_key(ch);
+
+            // ESC key (\x1B) closes any open window back to desktop
+            if ch == '\x1B' {
+                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
+                continue;
             }
 
-            let mut shell = crate::shell::SHELL.lock();
-            if ch == '\n' || ch == '\r' {
-                let len = shell.input_len;
-                if let Ok(cmd_str) = core::str::from_utf8(&shell.input_buf[..len]) {
-                    // Copy to stack to avoid borrow conflict
-                    let mut cmd_copy = [0u8; 128];
-                    for i in 0..len {
-                        cmd_copy[i] = shell.input_buf[i];
-                    }
-                    shell.input_len = 0;
-                    if let Ok(safe_str) = core::str::from_utf8(&cmd_copy[..len]) {
-                        shell.execute_command(safe_str);
-                    }
-                }
-            } else if ch == '\x08' {
-                if shell.input_len > 0 {
-                    shell.input_len -= 1;
-                }
-            } else if (ch as u8) >= 0x20 && (ch as u8) <= 0x7E {
-                if shell.input_len < 120 {
+            // Games always receive input when active
+            if active_app == crate::desktop::ActiveApp::Games {
+                crate::games::GAMES.lock().handle_key(ch);
+                // Don't consume key for shell when games is running
+                continue;
+            }
+
+            // Terminal and DesktopOnly: route keys to shell
+            if active_app == crate::desktop::ActiveApp::Terminal
+                || active_app == crate::desktop::ActiveApp::DesktopOnly
+            {
+                let mut shell = crate::shell::SHELL.lock();
+                if ch == '\n' || ch == '\r' {
                     let len = shell.input_len;
-                    shell.input_buf[len] = ch as u8;
-                    shell.input_len += 1;
+                    if let Ok(_cmd_str) = core::str::from_utf8(&shell.input_buf[..len]) {
+                        let mut cmd_copy = [0u8; 128];
+                        for i in 0..len {
+                            cmd_copy[i] = shell.input_buf[i];
+                        }
+                        shell.input_len = 0;
+                        if let Ok(safe_str) = core::str::from_utf8(&cmd_copy[..len]) {
+                            shell.execute_command(safe_str);
+                        }
+                    }
+                } else if ch == '\x08' {
+                    if shell.input_len > 0 {
+                        shell.input_len -= 1;
+                    }
+                } else if (ch as u8) >= 0x20 && (ch as u8) <= 0x7E {
+                    if shell.input_len < 120 {
+                        let len = shell.input_len;
+                        shell.input_buf[len] = ch as u8;
+                        shell.input_len += 1;
+                    }
+                }
+                // If terminal is not active, open it when user starts typing
+                if active_app == crate::desktop::ActiveApp::DesktopOnly
+                    && (ch as u8) >= 0x20 && (ch as u8) <= 0x7E
+                {
+                    crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Terminal;
                 }
             }
+            // All other apps: keyboard input is ignored (apps are mouse-driven)
+            // Calculator: future key routing can be added here
         }
 
         if progress % 10_000_000 == 0 {
