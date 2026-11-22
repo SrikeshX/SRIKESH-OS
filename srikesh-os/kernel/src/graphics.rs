@@ -28,34 +28,34 @@ impl Color {
         Self { r, g, b, a }
     }
 
-    // Palette: Egyptian Royal Visual Identity & Classic Accents
+    // Palette: Modern SRIKESH OS — Dark Mica Slate & Electric Sky-Blue (Windows 11 Inspired)
     pub const BLACK: Color = Color::new(0, 0, 0);
-    pub const OBSIDIAN: Color = Color::new(12, 10, 8);               // #0C0A08 Deep Obsidian Black
-    pub const PHARAOH_DARK: Color = Color::new(18, 14, 10);          // #120E0A Dark Pharaoh Base
-    pub const ROYAL_GOLD: Color = Color::new(212, 175, 55);          // #D4AF37 Royal Egyptian Gold
-    pub const BRIGHT_GOLD: Color = Color::new(255, 215, 0);          // #FFD700 Bright Sun Gold
-    pub const DARK_GOLD: Color = Color::new(165, 125, 25);           // #A57D19 Muted Antique Gold
-    pub const LAPIS_LAZULI: Color = Color::new(28, 45, 90);          // #1C2D5A Royal Lapis Lazuli Blue
-    pub const LAPIS_LIGHT: Color = Color::new(45, 75, 145);          // #2D4B91 Light Lapis
-    pub const ROYAL_SAND: Color = Color::new(228, 196, 140);         // #E4C48C Egyptian Sandstone
-    pub const ROYAL_AMBER: Color = Color::new(255, 160, 20);         // #FFA014 Amber Torchlight
-    pub const ROYAL_GLASS_PANEL: Color = Color::with_alpha(18, 15, 12, 215); // Translucent Obsidian
-    pub const ROYAL_GLASS_BORDER: Color = Color::with_alpha(212, 175, 55, 140); // Translucent Gold Border
-    pub const HIEROGLYPH_GLOW: Color = Color::with_alpha(255, 215, 0, 180);
+    pub const OBSIDIAN: Color = Color::new(11, 15, 25);              // #0B0F19 Deep Midnight Slate
+    pub const PHARAOH_DARK: Color = Color::new(17, 24, 39);          // #111827 Modern Slate Surface
+    pub const ROYAL_GOLD: Color = Color::new(56, 189, 248);          // #38BDF8 Electric Sky Blue Accent
+    pub const BRIGHT_GOLD: Color = Color::new(125, 211, 252);        // #7DD3FC Bright Sky Highlight
+    pub const DARK_GOLD: Color = Color::new(51, 65, 85);             // #334155 Subtle Slate Border
+    pub const LAPIS_LAZULI: Color = Color::new(30, 58, 138);         // #1E3A8A Deep Indigo Blue
+    pub const LAPIS_LIGHT: Color = Color::new(14, 165, 233);         // #0EA5E9 Vivid Cyan Blue
+    pub const ROYAL_SAND: Color = Color::new(203, 213, 225);         // #CBD5E1 Soft Cool Silver
+    pub const ROYAL_AMBER: Color = Color::new(251, 191, 36);         // #FBBF24 Warm Status Amber
+    pub const ROYAL_GLASS_PANEL: Color = Color::with_alpha(15, 23, 42, 228); // Frosted Dark Mica
+    pub const ROYAL_GLASS_BORDER: Color = Color::with_alpha(56, 189, 248, 140); // Subtle Sky Glow
+    pub const HIEROGLYPH_GLOW: Color = Color::with_alpha(56, 189, 248, 180);
 
-    // Classic / Semantic Accents
-    pub const DEEP_ABYSS: Color = Color::new(12, 10, 8);
-    pub const DARK_NAVY: Color = Color::new(16, 14, 20);
-    pub const GLASS_PANEL: Color = Color::with_alpha(18, 15, 12, 215);
-    pub const GLASS_BORDER: Color = Color::with_alpha(212, 175, 55, 140);
-    pub const ELECTRIC_CYAN: Color = Color::new(212, 175, 55);       // Mapped to Royal Gold for uniform branding
-    pub const NEON_VIOLET: Color = Color::new(45, 75, 145);
-    pub const NEON_MAGENTA: Color = Color::new(212, 175, 55);
-    pub const NEON_BLUE: Color = Color::new(28, 45, 90);
-    pub const WHITE: Color = Color::new(255, 255, 255);
-    pub const TEXT_MUTED: Color = Color::new(180, 165, 145);
-    pub const SUCCESS_GREEN: Color = Color::new(40, 210, 120);
-    pub const DANGER_RED: Color = Color::new(235, 60, 50);
+    // Semantic Accents
+    pub const DEEP_ABYSS: Color = Color::new(11, 15, 25);
+    pub const DARK_NAVY: Color = Color::new(15, 23, 42);
+    pub const GLASS_PANEL: Color = Color::with_alpha(15, 23, 42, 228);
+    pub const GLASS_BORDER: Color = Color::with_alpha(56, 189, 248, 140);
+    pub const ELECTRIC_CYAN: Color = Color::new(56, 189, 248);
+    pub const NEON_VIOLET: Color = Color::new(99, 102, 241);
+    pub const NEON_MAGENTA: Color = Color::new(168, 85, 247);
+    pub const NEON_BLUE: Color = Color::new(14, 165, 233);
+    pub const WHITE: Color = Color::new(248, 250, 252);              // #F8FAFC Crisp Off-White
+    pub const TEXT_MUTED: Color = Color::new(148, 163, 184);         // #94A3B8 Cool Slate Gray
+    pub const SUCCESS_GREEN: Color = Color::new(34, 197, 94);        // #22C55E Modern Emerald
+    pub const DANGER_RED: Color = Color::new(239, 68, 68);           // #EF4444 Modern Coral Red
 
     /// Alpha blend foreground color over background color.
     #[inline(always)]

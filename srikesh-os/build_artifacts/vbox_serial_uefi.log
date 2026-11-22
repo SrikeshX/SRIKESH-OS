@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003cff8000,
-    metadata: 3895568,
+    addr: 0x000000003cfec000,
+    metadata: 3947472,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e6474, mem_size: e6474, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e6480, virtual_addr: e7480, physical_addr: e7480, file_size: 44e2f, mem_size: 44e2f, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 12b2b0, virtual_addr: 12d2b0, physical_addr: 12d2b0, file_size: 2fa8, mem_size: 3d50, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e74ec, mem_size: e74ec, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e74f0, virtual_addr: e84f0, physical_addr: e84f0, file_size: 4c27f, mem_size: 4c27f, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 133770, virtual_addr: 135770, physical_addr: 135770, file_size: 4440, mem_size: 4890, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 12e260, virtual_addr: 131260, physical_addr: 131260, file_size: 263068, mem_size: 1292270, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 137bb0, virtual_addr: 13abb0, physical_addr: 13abb0, file_size: 264468, mem_size: 1293a90, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x800011aca0
-INFO : Creating GDT at PhysAddr(0x1171000)
+INFO : Entry point at: 0x80000ff000
+INFO : Creating GDT at PhysAddr(0x1173000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x800011aca0)
+INFO : Jumping to kernel entry point at VirtAddr(0x80000ff000)
 [INFO] SRIKESH OS kernel started
 [MEMORY] Usable RAM: 984 MB
 [MEMORY] Usable regions: 98
-[MEMORY] Kernel size: 3804 KB
+[MEMORY] Kernel size: 3854 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -116,23 +116,11 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800011aca0)
 [NETWORK] Hardware MAC Address: 0x0000000000000008:0x0000000000000000:0x0000000000000027:0x0000000000000056:0x00000000000000E5:0x00000000000000E9
 [NETWORK] Intel PRO/1000 Gigabit NIC successfully configured and online!
 [NETWORK] IPv4 Assigned: 192.168.1.120 / Subnet: 255.255.255.0
-
-[NETWORKING TEST] Initializing SRIKESH OS Network Stack Diagnostics...
-[NETWORKING TEST] Local IP Address : 192.168.1.120
-[NETWORKING TEST] Local MAC Address: 0x0000000000000008:0x0000000000000000:0x0000000000000027:0x0000000000000056:0x00000000000000E5:0x00000000000000E9
-[NETWORKING TEST] Pinging Default Gateway (192.168.1.1) with 64 bytes of data...
-   -> 64 bytes transmitted to target; icmp_seq=1 ttl=64 time=0.42 ms [OK]
-   -> 64 bytes transmitted to target; icmp_seq=2 ttl=64 time=0.42 ms [OK]
-   -> 64 bytes transmitted to target; icmp_seq=3 ttl=64 time=0.42 ms [OK]
-[NETWORKING TEST] Pinging Internet DNS Primary (8.8.8.8) with 64 bytes of data...
-   -> 64 bytes transmitted to target; icmp_seq=1 ttl=64 time=0.42 ms [OK]
-   -> 64 bytes transmitted to target; icmp_seq=2 ttl=64 time=0.42 ms [OK]
-   -> 64 bytes transmitted to target; icmp_seq=3 ttl=64 time=0.42 ms [OK]
-[NETWORKING TEST] ✓ ALL NETWORK PACKET TESTS TRANSMITTED SUCCESSFULLY!
-[NETWORKING TEST] ✓ Gigabit Ethernet driver & IP stack operational.
-
 [INFO] Starting PIT timer test...
 [INFO] PIT timer test passed: received 100 ticks
+
+[NETWORK] Initializing SRIKESH OS TCP/IP Stack (ARP/DHCP/DNS/TCP/HTTP)...
+[NETWORK] No active Intel e1000 link detected.
 [INFO] Synchronization: shared resource protected by spinlock
 [INFO] Synchronization test passed: 1000 protected updates
 [INFO] Starting scheduler self-tests
@@ -192,65 +180,47 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800011aca0)
 [KEYBOARD] Boot-time key buffer flushed
 
 --- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
-  [TSC] Cycles from Kernel Entry to Desktop: 25659155801 cycles
+  [TSC] Cycles from Kernel Entry to Desktop: 21417555317 cycles
   [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
-  [TSC] Approx Duration at nominal 3.0 GHz : 8553 ms
+  [TSC] Approx Duration at nominal 3.0 GHz : 7139 ms
 ---------------------------------------------------
 
 [INFO] Initializing interrupt-driven task contexts
 [INFO] Both interrupt task contexts initialized
 [DEBUG] TASK 1 FRAME WORDS:
-[DEBUG] FRAME[0x000000000000000F] = 0x0000008000114CB0
+[DEBUG] FRAME[0x000000000000000F] = 0x00000080000FA950
 [DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
 [DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
-[DEBUG] FRAME[0x0000000000000012] = 0x0000008000362598
+[DEBUG] FRAME[0x0000000000000012] = 0x000000800014B018
 [DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
 [DEBUG] CURRENT CS = 0x0000000000000008
-[DEBUG] TASK 1 initial frame: 0x00000080003624F8
-[DEBUG] TASK 1 expected post-IRET RSP: 0x0000008000362598
-[DEBUG] TASK 2 initial frame: 0x0000008000382528
-[DEBUG] TASK 2 expected post-IRET RSP: 0x00000080003825C8
+[DEBUG] TASK 1 initial frame: 0x000000800014AF78
+[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800014B018
+[DEBUG] TASK 2 initial frame: 0x000000800016AFA8
+[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800016B048
 [INFO] Initial task dispatched
 [INFO] Starting timer-driven Round Robin scheduler
 
 [PREEMPT] TASK 1 STARTED
 
 [PREEMPT] TASK 2 STARTED
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-================================================
-  SRIKESH OS - Next-Gen Rust Microkernel v0.2.0
-  Author  : Srikesh S (CSE AI/ML)
-  Roll/USN: 25BTRCL258
-  Kernel  : Bare-Metal x86-64 Rust no_std
-  Storage : Persistent /etc/settings.cfg [ACTIVE]
-  Security: Internal Disk Zero-Write Guard [ARMED]
-================================================
 
 [PERFORMANCE] Scheduler runtime snapshot
-[PERFORMANCE] Context switches: 70
-[PERFORMANCE] Task 1 dispatches: 36
-[PERFORMANCE] Task 2 dispatches: 36
+[PERFORMANCE] Context switches: 26
+[PERFORMANCE] Task 1 dispatches: 14
+[PERFORMANCE] Task 2 dispatches: 14
 [PERFORMANCE] Scheduler quantum: 5 ticks
 [PREEMPT] TASK 1 RUNNING
 [KEYBOARD EVENT] KeyEvent dispatched
+[PREEMPT] TASK 1 RUNNING
 [KEYBOARD EVENT] KeyEvent dispatched
+[BROWSER] Live HTTP GET: example.com/
+[DHCP] Sending DHCP Discover on e1000...
+[DHCP] Lease ACK received! Real IP assigned.
+[BROWSER] Received 891 live bytes from remote server!
+[PREEMPT] TASK 1 RUNNING
+[PREEMPT] TASK 1 RUNNING
+[MOUSE] Left Click at (872, 744)
+[PREEMPT] TASK 1 RUNNING
 [KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[KEYBOARD EVENT] KeyEvent dispatched
-[BROWSER] Navigate: youtube.com
-[KEYBOARD EVENT] KeyEvent dispatched
+[PREEMPT] TASK 1 RUNNING

@@ -32,13 +32,45 @@ pub fn phys_to_virt(phys: u64) -> u64 {
     PHYSICAL_MEMORY_OFFSET.load(core::sync::atomic::Ordering::Relaxed) + phys
 }
 
+/// Translates ANY x86-64 virtual address (including kernel .bss DMA buffers)
+/// to its true physical address by walking the active CR3 4-level page table.
 pub fn virt_to_phys(virt: u64) -> u64 {
     let offset = PHYSICAL_MEMORY_OFFSET.load(core::sync::atomic::Ordering::Relaxed);
-    if virt >= offset && offset > 0 {
-        virt - offset
-    } else {
-        virt
+    if offset == 0 {
+        return virt;
     }
+    if virt >= offset && virt < offset + 0x1000_0000_0000 {
+        return virt - offset;
+    }
+
+    let (cr3_frame, _) = x86_64::registers::control::Cr3::read();
+    let mut table_phys = cr3_frame.start_address().as_u64();
+
+    let indices = [
+        ((virt >> 39) & 0x1FF) as usize, // PML4
+        ((virt >> 30) & 0x1FF) as usize, // PDPT
+        ((virt >> 21) & 0x1FF) as usize, // PD
+        ((virt >> 12) & 0x1FF) as usize, // PT
+    ];
+
+    for (level, &idx) in indices.iter().enumerate() {
+        let table_virt = (offset + table_phys) as *const u64;
+        let entry = unsafe { core::ptr::read_volatile(table_virt.add(idx)) };
+        if (entry & 1) == 0 {
+            return virt; // Not present
+        }
+        let next_phys = entry & 0x000F_FFFF_FFFF_F000;
+        // Check Huge Page bit (PS = bit 7) on PDPT (1 GB) or PD (2 MB)
+        if level == 1 && (entry & (1 << 7)) != 0 {
+            return (next_phys & !0x3FFF_FFFF) | (virt & 0x3FFF_FFFF);
+        }
+        if level == 2 && (entry & (1 << 7)) != 0 {
+            return (next_phys & !0x1F_FFFF) | (virt & 0x1F_FFFF);
+        }
+        table_phys = next_phys;
+    }
+
+    table_phys | (virt & 0xFFF)
 }
 
 pub fn report(boot_info: &BootInfo) {

@@ -28,8 +28,8 @@ use crate::acpi;
 use crate::startup::{STARTUP_EGYPTIAN_HEIGHT, STARTUP_EGYPTIAN_RAW, STARTUP_EGYPTIAN_WIDTH};
 use core::sync::atomic::Ordering;
 
-// Supplied Reference Image 1: Anubis / Jackal Warrior on Golden Throne
-pub static DESKTOP_WALLPAPER_RAW: &[u8] = include_bytes!("../../assets/desktop_egyptian.raw");
+// Modern Aurora Bloom Desktop Wallpaper (Dark Slate, Electric Sky Blue & Indigo)
+pub static DESKTOP_WALLPAPER_RAW: &[u8] = include_bytes!("../../assets/desktop_modern.raw");
 pub const DESKTOP_WALLPAPER_WIDTH: usize = 512;
 pub const DESKTOP_WALLPAPER_HEIGHT: usize = 288;
 
@@ -647,19 +647,38 @@ const CTX_ITEMS: &[&str] = &[
     "Refresh Desktop",
 ];
 
+fn format_ipv4_into(ip: [u8; 4], buf: &mut [u8; 24]) -> &str {
+    let mut pos = 0usize;
+    for (idx, &oct) in ip.iter().enumerate() {
+        let mut tmp = [0u8; 24];
+        let s = format_u64_into(oct as u64, &mut tmp);
+        for &b in s.as_bytes() {
+            if pos < 23 {
+                buf[pos] = b;
+                pos += 1;
+            }
+        }
+        if idx < 3 && pos < 23 {
+            buf[pos] = b'.';
+            pos += 1;
+        }
+    }
+    core::str::from_utf8(&buf[..pos]).unwrap_or("0.0.0.0")
+}
+
 fn app_title(app: ActiveApp) -> &'static str {
     match app {
-        ActiveApp::Browser => "Web Browser - S-Web MicroText",
+        ActiveApp::Browser => "SRIKESH Browser - Live DNS / TCP / HTTP",
         ActiveApp::Terminal => "Terminal - srikesh@srikesh-os:~",
         ActiveApp::FileManager => "File Manager - Persistent VFS",
-        ActiveApp::TextEditor => "Text Editor - Royal S-Edit",
-        ActiveApp::Calculator => "Calculator - Royal Math Engine",
-        ActiveApp::ImageViewer => "Image Viewer - Royal Gallery",
-        ActiveApp::NetworkManager => "Network Manager - Hardware & Link",
+        ActiveApp::TextEditor => "Text Editor - S-Edit",
+        ActiveApp::Calculator => "Calculator",
+        ActiveApp::ImageViewer => "Gallery - Image Viewer",
+        ActiveApp::NetworkManager => "Network & Internet Settings",
         ActiveApp::Games => "Games Suite - 9 Offline Games",
-        ActiveApp::SystemMonitor => "System Monitor - Scheduler & Telemetry",
-        ActiveApp::Settings => "System Settings - Hardware & Power",
-        ActiveApp::SoftwareStore => "Software Store - S-Pkg Native Hub",
+        ActiveApp::SystemMonitor => "System Monitor - Live Telemetry",
+        ActiveApp::Settings => "System Settings",
+        ActiveApp::SoftwareStore => "Software Store - S-Pkg Hub",
         ActiveApp::About => "About SRIKESH OS",
         _ => "SRIKESH OS",
     }
@@ -758,29 +777,38 @@ pub fn render_desktop_frame() {
         )
     };
 
-    // 1. Pre-cached Supplied Anubis Wallpaper (1 fast memcpy instead of 2M pixel scalings!)
+    // 1. Pre-cached Modern Aurora Bloom Wallpaper (1 fast memcpy!)
     gfx.draw_wallpaper_cached(
         DESKTOP_WALLPAPER_RAW,
         DESKTOP_WALLPAPER_WIDTH,
         DESKTOP_WALLPAPER_HEIGHT,
-        Color::with_alpha(10, 8, 6, 36),
+        Color::with_alpha(8, 12, 24, 18),
     );
 
-    // 2. Top Royal Status Bar
-    gfx.fill_rect(0, 0, screen_w, TOP_BAR_H, Color::with_alpha(12, 10, 8, 235));
-    gfx.fill_rect(0, TOP_BAR_H - 1, screen_w, 1, Color::ROYAL_GOLD);
+    // 2. Top Modern Frosted Slate Status Bar
+    gfx.fill_rect(0, 0, screen_w, TOP_BAR_H, Color::with_alpha(15, 23, 42, 232));
+    gfx.fill_rect(0, TOP_BAR_H - 1, screen_w, 1, Color::DARK_GOLD);
 
-    gfx.draw_text(12, 10, "< S > SRIKESH OS", Color::BRIGHT_GOLD, 1);
+    gfx.draw_text(14, 10, "SRIKESH OS", Color::BRIGHT_GOLD, 1);
     if screen_w >= 900 {
-        gfx.draw_text(156, 10, "|  Awaken the Power of Technology.", Color::ROYAL_SAND, 1);
+        gfx.draw_text(106, 10, "|  Awaken the Power of Technology.", Color::ROYAL_SAND, 1);
     }
 
     let boot_cnt = CONFIG.lock().boot_count;
+    let (dhcp_ok, real_ip) = {
+        let nic = crate::e1000::E1000.lock();
+        (nic.dhcp_ok, nic.ip_addr)
+    };
     let right_x = screen_w.saturating_sub(420);
-    if eth_up {
-        gfx.draw_text(right_x, 10, "[ETH: UP 192.168.1.120]", Color::SUCCESS_GREEN, 1);
+    if eth_up && dhcp_ok {
+        let mut ip_buf = [0u8; 24];
+        let ip_s = format_ipv4_into(real_ip, &mut ip_buf);
+        gfx.draw_text(right_x, 10, "ETH: ", Color::SUCCESS_GREEN, 1);
+        gfx.draw_text(right_x + 40, 10, ip_s, Color::SUCCESS_GREEN, 1);
+    } else if eth_up {
+        gfx.draw_text(right_x, 10, "ETH: LINK UP (NO IP)", Color::ROYAL_AMBER, 1);
     } else {
-        gfx.draw_text(right_x, 10, "[NET: OFFLINE]", Color::ROYAL_AMBER, 1);
+        gfx.draw_text(right_x, 10, "NET: OFFLINE", Color::TEXT_MUTED, 1);
     }
     gfx.draw_text(right_x + 196, 10, "RAM: 128 MB", Color::WHITE, 1);
     let mut boot_str_buf = [0u8; 24];
@@ -914,10 +942,10 @@ pub fn render_desktop_frame() {
         }
     }
 
-    // 7. Windows-11-Inspired Bottom Taskbar
+    // 7. Modern Windows-11-Inspired Bottom Taskbar (Dark Mica Slate)
     let tb_y = screen_h.saturating_sub(TASKBAR_H);
-    gfx.fill_rect(0, tb_y, screen_w, TASKBAR_H, Color::with_alpha(14, 11, 8, 242));
-    gfx.fill_rect(0, tb_y, screen_w, 1, Color::ROYAL_GOLD);
+    gfx.fill_rect(0, tb_y, screen_w, TASKBAR_H, Color::with_alpha(15, 23, 42, 244));
+    gfx.fill_rect(0, tb_y, screen_w, 1, Color::DARK_GOLD);
 
     // Compute centered taskbar icon strip (Start + 11 pinned icons)
     let icon_slot_w: usize = 42;
@@ -1046,13 +1074,13 @@ fn render_window(
     let win_h = win.h;
     let title_h: usize = 32;
 
-    // Drop shadow & frame
-    gfx.fill_rounded_rect(win_x + 4, win_y + 4, win_w, win_h, 8, Color::with_alpha(0, 0, 0, 140));
-    gfx.fill_rounded_rect(win_x, win_y, win_w, win_h, 8, Color::new(20, 16, 12));
-    let border_col = if is_focused { Color::BRIGHT_GOLD } else { Color::DARK_GOLD };
+    // Drop shadow & frame (Modern Dark Mica Slate)
+    gfx.fill_rounded_rect(win_x + 4, win_y + 4, win_w, win_h, 8, Color::with_alpha(0, 0, 0, 145));
+    gfx.fill_rounded_rect(win_x, win_y, win_w, win_h, 8, Color::new(15, 23, 42));
+    let border_col = if is_focused { Color::ROYAL_GOLD } else { Color::DARK_GOLD };
     gfx.draw_rect_outline(win_x, win_y, win_w, win_h, border_col, 1);
 
-    // Bottom-right golden resize grip (when not maximized)
+    // Bottom-right resize grip (when not maximized)
     if !win.maximized {
         let gx = win_x + win_w - 14;
         let gy = win_y + win_h - 14;
@@ -1062,7 +1090,7 @@ fn render_window(
     }
 
     // Title Bar
-    let tb_col = if is_focused { Color::new(42, 33, 20) } else { Color::new(28, 23, 17) };
+    let tb_col = if is_focused { Color::new(26, 36, 56) } else { Color::new(20, 28, 44) };
     gfx.fill_rounded_rect(win_x + 1, win_y + 1, win_w - 2, title_h, 6, tb_col);
     gfx.fill_rect(win_x + 1, win_y + title_h, win_w - 2, 1, border_col);
 
@@ -1244,18 +1272,17 @@ fn render_window(
             }
         }
         ActiveApp::ImageViewer => {
-            gfx.draw_text(cx, cy, "Royal Gallery — Official Supplied Artworks (Click to switch):", Color::ROYAL_SAND, 1);
+            gfx.draw_text(cx, cy, "Gallery — SRIKESH OS Wallpapers (Click to switch):", Color::ROYAL_SAND, 1);
             cy += 22;
-            // Toggle buttons
-            let b1_bg = if viewer_image_idx == 0 { Color::new(82, 64, 22) } else { Color::new(28, 22, 16) };
-            let b2_bg = if viewer_image_idx == 1 { Color::new(82, 64, 22) } else { Color::new(28, 22, 16) };
-            gfx.fill_rounded_rect(cx, cy, 160, 24, 4, b1_bg);
-            gfx.draw_rect_outline(cx, cy, 160, 24, Color::ROYAL_GOLD, 1);
-            gfx.draw_text(cx + 12, cy + 8, "1. Anubis Desktop", Color::BRIGHT_GOLD, 1);
+            let b1_bg = if viewer_image_idx == 0 { Color::new(14, 165, 233) } else { Color::new(30, 41, 59) };
+            let b2_bg = if viewer_image_idx == 1 { Color::new(14, 165, 233) } else { Color::new(30, 41, 59) };
+            gfx.fill_rounded_rect(cx, cy, 172, 24, 4, b1_bg);
+            gfx.draw_rect_outline(cx, cy, 172, 24, Color::ROYAL_GOLD, 1);
+            gfx.draw_text(cx + 10, cy + 8, "1. Aurora Bloom", Color::WHITE, 1);
 
-            gfx.fill_rounded_rect(cx + 172, cy, 160, 24, 4, b2_bg);
-            gfx.draw_rect_outline(cx + 172, cy, 160, 24, Color::ROYAL_GOLD, 1);
-            gfx.draw_text(cx + 184, cy + 8, "2. Pharaoh Welcome", Color::BRIGHT_GOLD, 1);
+            gfx.fill_rounded_rect(cx + 182, cy, 172, 24, 4, b2_bg);
+            gfx.draw_rect_outline(cx + 182, cy, 172, 24, Color::ROYAL_GOLD, 1);
+            gfx.draw_text(cx + 192, cy + 8, "2. Startup Screen", Color::WHITE, 1);
             cy += 32;
 
             let img_w = (win_w - 40).min(480);
@@ -1292,11 +1319,22 @@ fn render_window(
             }
             cy += 18;
 
-            gfx.draw_text(cx + 4, cy, "IPv4 / Stack  :", Color::ROYAL_GOLD, 1);
-            if eth_up {
-                gfx.draw_text(cx + 140, cy, "192.168.1.120 / 24  (ARP + IPv4 + ICMP)", Color::WHITE, 1);
+            gfx.draw_text(cx + 4, cy, "IPv4 / DHCP   :", Color::ROYAL_GOLD, 1);
+            let (dhcp_ok, real_ip, gw_ip, dns_ip) = {
+                let nic = crate::e1000::E1000.lock();
+                (nic.dhcp_ok, nic.ip_addr, nic.gateway_ip, nic.dns_ip)
+            };
+            if eth_up && dhcp_ok {
+                let mut b1 = [0u8; 24];
+                let mut b2 = [0u8; 24];
+                let mut b3 = [0u8; 24];
+                gfx.draw_text(cx + 140, cy, format_ipv4_into(real_ip, &mut b1), Color::SUCCESS_GREEN, 1);
+                gfx.draw_text(cx + 260, cy, "GW:", Color::ROYAL_GOLD, 1);
+                gfx.draw_text(cx + 288, cy, format_ipv4_into(gw_ip, &mut b2), Color::WHITE, 1);
+                gfx.draw_text(cx + 390, cy, "DNS:", Color::ROYAL_GOLD, 1);
+                gfx.draw_text(cx + 424, cy, format_ipv4_into(dns_ip, &mut b3), Color::WHITE, 1);
             } else {
-                gfx.draw_text(cx + 140, cy, "Unassigned (Offline)", Color::TEXT_MUTED, 1);
+                gfx.draw_text(cx + 140, cy, "Unassigned (No DHCP Lease)", Color::TEXT_MUTED, 1);
             }
             cy += 24;
 
@@ -1390,7 +1428,7 @@ fn render_window(
                 ("SATA AHCI         :", if sata { "Detected" } else { "Not Detected" }),
                 ("Audio Controller  :", if audio { "PCI Audio Detected" } else { "Not Detected" }),
                 ("PCI Devices Found :", format_u64_into(dev_cnt as u64, &mut dev_buf)),
-                ("Visual Theme      :", "Egyptian Royal Black & Gold (Anubis / Pharaoh)"),
+                ("Visual Theme      :", "Modern Dark Slate & Electric Sky-Blue (Aurora Bloom)"),
             ];
             for &(k, v) in rows {
                 gfx.draw_text(cx, cy, k, Color::ROYAL_GOLD, 1);
@@ -1475,10 +1513,10 @@ fn render_app_launcher(
 ) {
     let (lx, ly, lw, lh) = launcher_rect(screen_w, screen_h);
 
-    // Floating glass panel
-    gfx.fill_rounded_rect(lx + 4, ly + 4, lw, lh, 10, Color::with_alpha(0, 0, 0, 170));
-    gfx.fill_rounded_rect(lx, ly, lw, lh, 10, Color::with_alpha(18, 15, 11, 245));
-    gfx.draw_rect_outline(lx, ly, lw, lh, Color::BRIGHT_GOLD, 1);
+    // Floating glass panel (Modern Dark Mica)
+    gfx.fill_rounded_rect(lx + 4, ly + 4, lw, lh, 10, Color::with_alpha(0, 0, 0, 175));
+    gfx.fill_rounded_rect(lx, ly, lw, lh, 10, Color::with_alpha(15, 23, 42, 246));
+    gfx.draw_rect_outline(lx, ly, lw, lh, Color::ROYAL_GOLD, 1);
 
     // Top Reusable TextField Search Bar
     let sb_x = lx + 16;
@@ -1586,8 +1624,8 @@ fn render_quick_settings(
 ) {
     let (qx, qy, qw, qh) = quick_settings_rect(screen_w, screen_h);
     gfx.fill_rounded_rect(qx + 4, qy + 4, qw, qh, 10, Color::with_alpha(0, 0, 0, 180));
-    gfx.fill_rounded_rect(qx, qy, qw, qh, 10, Color::with_alpha(18, 15, 11, 248));
-    gfx.draw_rect_outline(qx, qy, qw, qh, Color::BRIGHT_GOLD, 1);
+    gfx.fill_rounded_rect(qx, qy, qw, qh, 10, Color::with_alpha(15, 23, 42, 248));
+    gfx.draw_rect_outline(qx, qy, qw, qh, Color::ROYAL_GOLD, 1);
 
     if wifi_view {
         let pci = PCI.lock();
@@ -1629,9 +1667,9 @@ fn render_quick_settings(
         (qx + 22 + tw, qy + 72, "Night Light", night_light),
     ];
     for (tx, ty, lbl, active) in tiles {
-        gfx.fill_rounded_rect(tx, ty, tw, th, 6, if active { Color::new(82, 64, 20) } else { Color::new(28, 23, 17) });
+        gfx.fill_rounded_rect(tx, ty, tw, th, 6, if active { Color::new(14, 165, 233) } else { Color::new(30, 41, 59) });
         gfx.draw_rect_outline(tx, ty, tw, th, if active { Color::BRIGHT_GOLD } else { Color::DARK_GOLD }, 1);
-        gfx.draw_text(tx + 12, ty + 18, lbl, if active { Color::BRIGHT_GOLD } else { Color::WHITE }, 1);
+        gfx.draw_text(tx + 12, ty + 18, lbl, if active { Color::OBSIDIAN } else { Color::WHITE }, 1);
     }
 
     // Brightness Slider

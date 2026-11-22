@@ -575,7 +575,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 
     pci::scan_pci_bus();
     e1000::init_e1000();
-    net::test_network_subsystem();
 
     logger::info("Starting PIT timer test...");
     x86_64::instructions::interrupts::enable();
@@ -588,6 +587,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 
     x86_64::instructions::interrupts::disable();
     logger::info("PIT timer test passed: received 100 ticks");
+    net::test_network_subsystem();
     crate::sync::run_demo();
     scheduler_tests::run();
     ca6_tests::run_all_tests();

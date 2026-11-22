@@ -101,6 +101,9 @@ pub struct E1000Nic {
     pub rx_curr: usize,
     pub tx_curr: usize,
     pub ip_addr: [u8; 4],
+    pub gateway_ip: [u8; 4],
+    pub dns_ip: [u8; 4],
+    pub dhcp_ok: bool,
 }
 
 impl E1000Nic {
@@ -108,10 +111,13 @@ impl E1000Nic {
         Self {
             initialized: false,
             mmio_base: 0,
-            mac_addr: [0x52, 0x54, 0x00, 0x12, 0x34, 0x56], // Standard QEMU MAC default fallback
+            mac_addr: [0x52, 0x54, 0x00, 0x12, 0x34, 0x56],
             rx_curr: 0,
             tx_curr: 0,
-            ip_addr: [192, 168, 1, 120], // Static default IP inside SRIKESH OS
+            ip_addr: [0, 0, 0, 0],
+            gateway_ip: [10, 0, 2, 2],
+            dns_ip: [10, 0, 2, 3],
+            dhcp_ok: false,
         }
     }
 
@@ -248,7 +254,8 @@ pub fn init_e1000() {
         nic.write_reg(REG_RDLEN, (NUM_RX_DESCRIPTORS * core::mem::size_of::<RxDesc>()) as u32);
         nic.write_reg(REG_RDH, 0);
         nic.write_reg(REG_RDT, (NUM_RX_DESCRIPTORS - 1) as u32);
-        nic.write_reg(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_BSIZE_2048);
+        // RCTL: EN | UPE (bit 3) | MPE (bit 4) | BAM (bit 15) | BSIZE_2048 | SECRC (bit 26)
+        nic.write_reg(REG_RCTL, RCTL_EN | (1 << 3) | (1 << 4) | RCTL_BAM | RCTL_BSIZE_2048 | (1 << 26));
 
         // Initialize TX Descriptor Ring
         let tx_descs_ptr = core::ptr::addr_of_mut!(TX_DESCS) as *mut TxDesc;
@@ -315,5 +322,32 @@ pub fn send_packet(packet: &[u8]) -> bool {
             core::hint::spin_loop();
         }
         true
+    }
+}
+
+/// Non-blocking receive of one Ethernet frame from the Intel e1000 RX descriptor ring
+pub fn recv_packet(out: &mut [u8]) -> Option<usize> {
+    let mut nic = E1000.lock();
+    if !nic.initialized {
+        return None;
+    }
+    unsafe {
+        let rx_descs_ptr = core::ptr::addr_of_mut!(RX_DESCS) as *mut RxDesc;
+        let rx_buffers_ptr = core::ptr::addr_of!(RX_BUFFERS) as *const [u8; BUFFER_SIZE];
+        let curr = nic.rx_curr;
+        let desc = &mut *rx_descs_ptr.add(curr);
+        let status = core::ptr::read_volatile(&desc.status);
+        if (status & 0x01) == 0 {
+            return None;
+        }
+        let pkt_len = (core::ptr::read_volatile(&desc.length) as usize).min(BUFFER_SIZE).min(out.len());
+        let src_buf = &*rx_buffers_ptr.add(curr);
+        for i in 0..pkt_len {
+            out[i] = src_buf[i];
+        }
+        core::ptr::write_volatile(&mut desc.status, 0);
+        nic.rx_curr = (curr + 1) % NUM_RX_DESCRIPTORS;
+        nic.write_reg(REG_RDT, curr as u32);
+        Some(pkt_len)
     }
 }
