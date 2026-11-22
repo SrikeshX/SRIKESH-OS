@@ -1,19 +1,17 @@
-//! SRIKESH OS - Animated Startup Screen (Egyptian Royal Theme - Supplied Image 2)
+//! SRIKESH OS - Modern Startup & Boot Welcome Screen
 //!
 //! Visual Design:
-//! - Deep obsidian black backdrop with royal golden illumination
-//! - Supplied Reference Image 2: Pharaoh Sovereign on Royal Throne
-//! - Pharaonic glowing emblem: "< S >"
-//! - Official Branding: "SRIKESH OS" & "Awaken the Power of Technology."
-//! - Egyptian royal gold progress bar & live hardware validation telemetry
+//! - Sleek Dark Slate & Aurora Bloom backdrop (matches modern desktop identity)
+//! - Clean SRIKESH OS emblem, title, and "Awaken the Power of Technology." tagline
+//! - Frosted dark-mica hardware initialization panel & electric sky-blue progress bar
 
 use crate::graphics::{Color, GRAPHICS};
+use crate::desktop::{DESKTOP_WALLPAPER_HEIGHT, DESKTOP_WALLPAPER_RAW, DESKTOP_WALLPAPER_WIDTH};
 use crate::serial;
 
-// Embedded raw 24-bit RGB pixel data from Supplied Reference Image 2 (Pharaoh)
-pub static STARTUP_EGYPTIAN_RAW: &[u8] = include_bytes!("../../assets/startup_egyptian.raw");
-pub const STARTUP_EGYPTIAN_WIDTH: usize = 512;
-pub const STARTUP_EGYPTIAN_HEIGHT: usize = 288;
+pub static STARTUP_EGYPTIAN_RAW: &[u8] = DESKTOP_WALLPAPER_RAW;
+pub const STARTUP_EGYPTIAN_WIDTH: usize = DESKTOP_WALLPAPER_WIDTH;
+pub const STARTUP_EGYPTIAN_HEIGHT: usize = DESKTOP_WALLPAPER_HEIGHT;
 
 pub fn render_startup_screen(progress_percent: usize, status_message: &str) {
     let mut gfx = GRAPHICS.lock();
@@ -21,69 +19,60 @@ pub fn render_startup_screen(progress_percent: usize, status_message: &str) {
         return;
     }
 
-    // 1. Deep Obsidian Black background
-    gfx.clear(Color::OBSIDIAN);
+    let width = gfx.width;
+    let height = gfx.height;
 
-    // 2. Render Reference Image 2 (Pharaoh on Throne) in the upper/middle region
-    let wave_target_w = gfx.width;
-    let wave_target_h = (gfx.height * 56) / 100;
+    // 1. Modern Aurora Bloom full-screen backdrop with sleek dark-glass tint
     gfx.draw_image_rgb(
         0,
         0,
-        wave_target_w,
-        wave_target_h,
-        STARTUP_EGYPTIAN_RAW,
-        STARTUP_EGYPTIAN_WIDTH,
-        STARTUP_EGYPTIAN_HEIGHT,
+        width,
+        height,
+        DESKTOP_WALLPAPER_RAW,
+        DESKTOP_WALLPAPER_WIDTH,
+        DESKTOP_WALLPAPER_HEIGHT,
     );
+    gfx.fill_rect(0, 0, width, height, Color::with_alpha(10, 15, 28, 130));
 
-    // 3. Smooth golden vignette overlay at the bottom of the Pharaoh artwork
-    let width = gfx.width;
-    let fade_h = 42;
-    let fade_y = wave_target_h.saturating_sub(fade_h);
-    for i in 0..fade_h {
-        let alpha = ((i as u32 * 255) / fade_h as u32) as u8;
-        let cover = Color::with_alpha(12, 10, 8, alpha);
-        gfx.fill_rect(0, fade_y + i, width, 1, cover);
-    }
+    // 2. Centered Modern Logo & Branding
+    let top_y = (height * 16) / 100;
+    // Modern 4-tile Windows-11-inspired glowing sky-blue emblem
+    let ex = width / 2 - 22;
+    gfx.fill_rounded_rect(ex, top_y, 20, 20, 4, Color::BRIGHT_GOLD);
+    gfx.fill_rounded_rect(ex + 24, top_y, 20, 20, 4, Color::ROYAL_GOLD);
+    gfx.fill_rounded_rect(ex, top_y + 24, 20, 20, 4, Color::ROYAL_GOLD);
+    gfx.fill_rounded_rect(ex + 24, top_y + 24, 20, 20, 4, Color::LAPIS_LIGHT);
 
-    // 4. Glowing Pharaonic Emblem "< S >"
-    let emblem_y = wave_target_h / 4;
-    gfx.draw_text_centered(emblem_y, "< S >", Color::BRIGHT_GOLD, 4);
-
-    // 5. Official Branding: Title & Tagline
-    gfx.draw_text_centered(emblem_y + 44, "S R I K E S H   O S", Color::BRIGHT_GOLD, 3);
+    gfx.draw_text_centered(top_y + 60, "S R I K E S H   O S", Color::WHITE, 3);
     gfx.draw_text_centered(
-        emblem_y + 76,
+        top_y + 92,
         "Awaken the Power of Technology.",
-        Color::ROYAL_SAND,
+        Color::BRIGHT_GOLD,
         1,
     );
 
-    // 6. Egyptian Royal Frosted Panel in lower center
-    let panel_w = (gfx.width * 72) / 100;
-    let panel_h = 164;
-    let panel_x = (gfx.width - panel_w) / 2;
-    let panel_y = wave_target_h + 8;
+    // 3. Modern Frosted Dark-Mica Initialization Panel
+    let panel_w = ((width * 68) / 100).clamp(480, 760);
+    let panel_h = 176usize;
+    let panel_x = (width - panel_w) / 2;
+    let panel_y = top_y + 124;
 
-    gfx.fill_rounded_rect(panel_x, panel_y, panel_w, panel_h, 8, Color::ROYAL_GLASS_PANEL);
+    gfx.fill_rounded_rect(panel_x, panel_y, panel_w, panel_h, 10, Color::with_alpha(15, 23, 42, 228));
     gfx.draw_rect_outline(panel_x, panel_y, panel_w, panel_h, Color::ROYAL_GOLD, 1);
-    gfx.draw_rect_outline(panel_x + 2, panel_y + 2, panel_w - 4, panel_h - 4, Color::DARK_GOLD, 1);
 
-    // Hardware Checklist inside panel
-    let list_x = panel_x + 24;
-    let mut list_y = panel_y + 14;
-    let step = 17;
+    let list_x = panel_x + 22;
+    let mut list_y = panel_y + 16;
+    let step = 18usize;
 
     let items = [
-        "[OK] CPU Architecture : x86-64 Long Mode (Intel / AMD Multi-Core)",
-        "[OK] Physical Memory  : Paging & Dynamic Regions Initialized",
-        "[OK] Interrupt Engine : Dual 8259 PIC & IDT Vectors Armed",
-        "[OK] Hardware Timer   : 8254 PIT Calibrated at 100 Hz",
-        "[OK] Input Subsystem  : PS/2 Keyboard & Mouse Drivers Armed",
-        "[OK] Security Policy  : Host Storage Zero-Write Guard Active",
-        "[OK] Network Engine   : Intel PRO/1000 Gigabit & Wi-Fi Scanner",
-        "[OK] Pharaonic UI     : Egyptian Royal Double-Buffered Compositor",
+        "[OK] CPU Architecture : x86-64 Long Mode (Custom Rust no_std Kernel)",
+        "[OK] Memory Manager   : CR3 4-Level Page Table + 64 KB Heap Allocator",
+        "[OK] Interrupt Engine : 256-Entry IDT, Dual 8259 PIC & 100 Hz PIT Timer",
+        "[OK] Input Subsystem  : Lock-Safe Hybrid 8042 Keyboard & Mouse Drivers",
+        "[OK] Storage Guard    : Host Internal NVMe Zero-Write Protection Active",
+        "[OK] Network Engine   : Intel e1000 Gigabit + ARP/DHCP/DNS/TCP/HTTP",
+        "[OK] Display Engine   : Zero-Lag Dirty-Rect Double-Buffered Compositor",
+        "[OK] Modern Desktop   : Multi-Window Taskbar, Launcher & Quick Settings",
     ];
 
     let items_to_show = (progress_percent * items.len() + 99) / 100;
@@ -99,44 +88,37 @@ pub fn render_startup_screen(progress_percent: usize, status_message: &str) {
         list_y += step;
     }
 
-    // 7. Glowing Egyptian Royal Gold Progress Bar
-    let bar_w = panel_w - 48;
-    let bar_h = 10;
-    let bar_x = panel_x + 24;
-    let bar_y = panel_y + panel_h - 22;
+    // 4. Sleek Electric Sky-Blue Progress Bar
+    let bar_w = panel_w;
+    let bar_h = 12usize;
+    let bar_x = panel_x;
+    let bar_y = panel_y + panel_h + 20;
 
-    // Bar background
-    gfx.fill_rounded_rect(bar_x, bar_y, bar_w, bar_h, 4, Color::new(28, 22, 16));
+    gfx.fill_rounded_rect(bar_x, bar_y, bar_w, bar_h, 6, Color::new(30, 41, 59));
+    let fill_w = (bar_w * progress_percent.min(100)) / 100;
+    if fill_w > 0 {
+        gfx.fill_rounded_rect(bar_x, bar_y, fill_w.max(8), bar_h, 6, Color::ROYAL_GOLD);
+    }
 
-    // Filled progress
-    let fill_w = ((bar_w * progress_percent.min(100)) / 100).max(4);
-    gfx.draw_gradient_h(bar_x, bar_y, fill_w, bar_h, Color::DARK_GOLD, Color::BRIGHT_GOLD);
-
-    // Status line below panel
-    let status_y = panel_y + panel_h + 10;
-    gfx.draw_text_centered(status_y, status_message, Color::ROYAL_SAND, 1);
-
-    // Double buffer swap
+    gfx.draw_text_centered(bar_y + 22, status_message, Color::ROYAL_SAND, 1);
     gfx.swap_buffers();
 }
 
-/// Run smooth animated boot sequence across multiple milestones
 pub fn run_boot_sequence() {
-    serial::write_str("[STARTUP] Rendering SRIKESH OS Egyptian Royal Welcome Sequence...\n");
-
-    let checkpoints = [
-        (15, "Initializing kernel memory & CPU long mode..."),
-        (30, "Configuring IDT, PIC and 100 Hz hardware timer..."),
-        (50, "Probing PS/2 keyboard and mouse controllers..."),
-        (70, "Arming host storage zero-write protection guard..."),
-        (85, "Enumerating PCI devices & Intel e1000 networking..."),
-        (100, "Awaken the Power of Technology. Launching Desktop..."),
+    serial::write_str("[STARTUP] Launching Modern SRIKESH OS Welcome Screen...\n");
+    let steps = [
+        (15, "Initializing x86-64 Kernel & Memory Subsystems..."),
+        (35, "Arming IDT, 8259 PIC & Preemptive Round-Robin Scheduler..."),
+        (55, "Locking Internal Host NVMe Storage (Zero-Write Guard)..."),
+        (75, "Probing PCI Hardware, USB, Ethernet & Wi-Fi Adapters..."),
+        (90, "Caching Aurora Bloom Compositor & Modern Icon Suite..."),
+        (100, "Welcome to SRIKESH OS — Starting Desktop..."),
     ];
-
-    for (pct, msg) in checkpoints {
+    for &(pct, msg) in &steps {
         render_startup_screen(pct, msg);
-        for _ in 0..12_000_000 {
+        for _ in 0..1_200_000 {
             core::hint::spin_loop();
         }
     }
+    serial::write_str("[STARTUP] Boot welcome sequence completed.\n");
 }

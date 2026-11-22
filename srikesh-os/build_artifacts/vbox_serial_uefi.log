@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003cfec000,
-    metadata: 3947472,
+    addr: 0x000000003cfe9000,
+    metadata: 3960200,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e74ec, mem_size: e74ec, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e74f0, virtual_addr: e84f0, physical_addr: e84f0, file_size: 4c27f, mem_size: 4c27f, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 133770, virtual_addr: 135770, physical_addr: 135770, file_size: 4440, mem_size: 4890, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e7734, mem_size: e7734, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e7740, virtual_addr: e8740, physical_addr: e8740, file_size: 4e7cf, mem_size: 4e7cf, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 135f10, virtual_addr: 137f10, physical_addr: 137f10, file_size: 45a8, mem_size: 50f0, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 137bb0, virtual_addr: 13abb0, physical_addr: 13abb0, file_size: 264468, mem_size: 1293a90, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 13a4c0, virtual_addr: 13d4c0, physical_addr: 13d4c0, file_size: 2644e8, mem_size: 1292fac, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x80000ff000
-INFO : Creating GDT at PhysAddr(0x1173000)
+INFO : Entry point at: 0x8000124440
+INFO : Creating GDT at PhysAddr(0x1174000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x80000ff000)
+INFO : Jumping to kernel entry point at VirtAddr(0x8000124440)
 [INFO] SRIKESH OS kernel started
 [MEMORY] Usable RAM: 984 MB
 [MEMORY] Usable regions: 98
-[MEMORY] Kernel size: 3854 KB
+[MEMORY] Kernel size: 3867 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -66,7 +66,8 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000ff000)
 [SECURITY TEST] ✓ Host internal storage is cryptographically write-protected.
 [SECURITY TEST] ✓ Unidentified storage defaults strictly to READ-ONLY.
 [INFO] Double-Buffered Graphics & PS/2 Input Subsystems initialized
-[STARTUP] Rendering SRIKESH OS Egyptian Royal Welcome Sequence...
+[STARTUP] Launching Modern SRIKESH OS Welcome Screen...
+[STARTUP] Boot welcome sequence completed.
 
 [STORAGE] Initializing SRIKESH OS Persistence & Filesystem Subsystem...
 [VFS] Virtual File System initialized with standard system hierarchy.
@@ -180,24 +181,24 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000ff000)
 [KEYBOARD] Boot-time key buffer flushed
 
 --- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
-  [TSC] Cycles from Kernel Entry to Desktop: 21417555317 cycles
+  [TSC] Cycles from Kernel Entry to Desktop: 12978841445 cycles
   [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
-  [TSC] Approx Duration at nominal 3.0 GHz : 7139 ms
+  [TSC] Approx Duration at nominal 3.0 GHz : 4326 ms
 ---------------------------------------------------
 
 [INFO] Initializing interrupt-driven task contexts
 [INFO] Both interrupt task contexts initialized
 [DEBUG] TASK 1 FRAME WORDS:
-[DEBUG] FRAME[0x000000000000000F] = 0x00000080000FA950
+[DEBUG] FRAME[0x000000000000000F] = 0x000000800011F670
 [DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
 [DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
-[DEBUG] FRAME[0x0000000000000012] = 0x000000800014B018
+[DEBUG] FRAME[0x0000000000000012] = 0x0000008000250438
 [DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
 [DEBUG] CURRENT CS = 0x0000000000000008
-[DEBUG] TASK 1 initial frame: 0x000000800014AF78
-[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800014B018
-[DEBUG] TASK 2 initial frame: 0x000000800016AFA8
-[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800016B048
+[DEBUG] TASK 1 initial frame: 0x0000008000250398
+[DEBUG] TASK 1 expected post-IRET RSP: 0x0000008000250438
+[DEBUG] TASK 2 initial frame: 0x00000080002703C8
+[DEBUG] TASK 2 expected post-IRET RSP: 0x0000008000270468
 [INFO] Initial task dispatched
 [INFO] Starting timer-driven Round Robin scheduler
 
@@ -206,9 +207,9 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000ff000)
 [PREEMPT] TASK 2 STARTED
 
 [PERFORMANCE] Scheduler runtime snapshot
-[PERFORMANCE] Context switches: 26
-[PERFORMANCE] Task 1 dispatches: 14
-[PERFORMANCE] Task 2 dispatches: 14
+[PERFORMANCE] Context switches: 32
+[PERFORMANCE] Task 1 dispatches: 18
+[PERFORMANCE] Task 2 dispatches: 17
 [PERFORMANCE] Scheduler quantum: 5 ticks
 [PREEMPT] TASK 1 RUNNING
 [KEYBOARD EVENT] KeyEvent dispatched
@@ -217,10 +218,26 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000ff000)
 [BROWSER] Live HTTP GET: example.com/
 [DHCP] Sending DHCP Discover on e1000...
 [DHCP] Lease ACK received! Real IP assigned.
-[BROWSER] Received 891 live bytes from remote server!
+[BROWSER] Received 892 live bytes from remote server!
 [PREEMPT] TASK 1 RUNNING
-[PREEMPT] TASK 1 RUNNING
-[MOUSE] Left Click at (872, 744)
 [PREEMPT] TASK 1 RUNNING
 [KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[KEYBOARD EVENT] KeyEvent dispatched
+[PREEMPT] TASK 1 RUNNING
+[MOUSE] Left Click at (832, 736)
+[PREEMPT] TASK 1 RUNNING
 [PREEMPT] TASK 1 RUNNING

@@ -1634,26 +1634,42 @@ fn render_quick_settings(
         let wifi_fw = pci.wifi_firmware_req;
         drop(pci);
 
-        gfx.draw_text(qx + 14, qy + 14, "< Back   Wi-Fi Quick Panel", Color::BRIGHT_GOLD, 1);
-        gfx.fill_rect(qx + 10, qy + 30, qw - 20, 1, Color::DARK_GOLD);
+        // Windows-11-style header: "<-  Wi-Fi" + top-right Cyan ON/OFF pill switch
+        gfx.draw_text(qx + 14, qy + 14, "<-  Wi-Fi", Color::WHITE, 1);
+        gfx.fill_rounded_rect(qx + qw - 54, qy + 10, 40, 18, 9, Color::LAPIS_LIGHT);
+        gfx.fill_rounded_rect(qx + qw - 28, qy + 12, 12, 14, 6, Color::OBSIDIAN);
+        gfx.fill_rect(qx + 10, qy + 34, qw - 20, 1, Color::DARK_GOLD);
 
-        gfx.draw_text(qx + 14, qy + 42, "Hardware:", Color::ROYAL_GOLD, 1);
-        let chip_clip = if wifi_chip.len() > 26 { &wifi_chip[..26] } else { wifi_chip };
-        gfx.draw_text(qx + 14, qy + 58, if wifi_det { chip_clip } else { "No PCI Wi-Fi Adapter" },
-            if wifi_det { Color::SUCCESS_GREEN } else { Color::ROYAL_AMBER }, 1);
-        gfx.draw_text(qx + 14, qy + 78, "Firmware:", Color::ROYAL_GOLD, 1);
-        let fw_clip = if wifi_fw.len() > 26 { &wifi_fw[..26] } else { wifi_fw };
-        gfx.draw_text(qx + 14, qy + 94, fw_clip, Color::ROYAL_SAND, 1);
+        // Hardware card with left cyan indicator bar (matching Windows 11 Wi-Fi reference)
+        gfx.fill_rounded_rect(qx + 12, qy + 42, qw - 24, 152, 6, Color::new(26, 36, 56));
+        gfx.fill_rect(qx + 12, qy + 48, 3, 140, Color::ROYAL_GOLD);
 
-        gfx.draw_text(qx + 14, qy + 120, "Passphrase (Masked):", Color::ROYAL_GOLD, 1);
-        wifi_pass_field.render(gfx, qx + 14, qy + 136, qw - 28, 26, "Type password...", true);
-        let note_clip = if wifi_status_note.len() > 34 { &wifi_status_note[..34] } else { wifi_status_note };
-        gfx.draw_text(qx + 14, qy + 170, note_clip, Color::TEXT_MUTED, 1);
+        let chip_clip = if wifi_chip.len() > 30 { &wifi_chip[..30] } else { wifi_chip };
+        gfx.draw_text(qx + 22, qy + 50, if wifi_det { chip_clip } else { "No PCI Wi-Fi Adapter" },
+            if wifi_det { Color::WHITE } else { Color::ROYAL_AMBER }, 1);
+        let fw_clip = if wifi_fw.len() > 30 { &wifi_fw[..30] } else { wifi_fw };
+        gfx.draw_text(qx + 22, qy + 66, if wifi_det { fw_clip } else { "Use Ethernet (e1000) in VM" }, Color::ROYAL_SAND, 1);
 
-        // Open Full Network Manager button
-        gfx.fill_rounded_rect(qx + 14, qy + qh - 42, qw - 28, 28, 6, Color::new(56, 44, 18));
-        gfx.draw_rect_outline(qx + 14, qy + qh - 42, qw - 28, 28, Color::ROYAL_GOLD, 1);
-        gfx.draw_text(qx + 42, qy + qh - 32, "Open Network Manager", Color::BRIGHT_GOLD, 1);
+        // Windows-11-style Password input with cyan bottom accent bar + Next / Cancel
+        gfx.draw_text(qx + 22, qy + 88, "Enter the password", Color::ROYAL_SAND, 1);
+        wifi_pass_field.render(gfx, qx + 22, qy + 104, qw - 44, 24, "Password...", true);
+        gfx.fill_rect(qx + 22, qy + 127, qw - 44, 2, Color::ROYAL_GOLD);
+
+        let note_clip = if wifi_status_note.len() > 32 { &wifi_status_note[..32] } else { wifi_status_note };
+        gfx.draw_text(qx + 22, qy + 136, note_clip, Color::TEXT_MUTED, 1);
+
+        // Next & Cancel buttons
+        let bw = (qw - 52) / 2;
+        gfx.fill_rounded_rect(qx + 22, qy + 158, bw, 26, 4, Color::new(56, 68, 86));
+        gfx.draw_text(qx + 22 + bw / 2 - 16, qy + 167, "Next", Color::WHITE, 1);
+        gfx.fill_rounded_rect(qx + 30 + bw, qy + 158, bw, 26, 4, Color::new(38, 48, 66));
+        gfx.draw_text(qx + 30 + bw + bw / 2 - 24, qy + 167, "Cancel", Color::ROYAL_SAND, 1);
+
+        // Footer: "More Wi-Fi settings" + Refresh button
+        gfx.fill_rect(qx + 10, qy + qh - 38, qw - 20, 1, Color::DARK_GOLD);
+        gfx.draw_text(qx + 14, qy + qh - 24, "More Wi-Fi settings", Color::ROYAL_SAND, 1);
+        gfx.fill_rounded_rect(qx + qw - 74, qy + qh - 30, 60, 20, 4, Color::new(30, 41, 59));
+        gfx.draw_text(qx + qw - 68, qy + qh - 24, "Refresh", Color::BRIGHT_GOLD, 1);
         return;
     }
 

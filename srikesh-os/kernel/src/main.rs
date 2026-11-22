@@ -512,12 +512,19 @@ extern "C" fn preempt_task2_entry() -> ! {
             needs_render = true;
         }
 
+        // --- Playable Chrome-style Offline Dinosaur Runner animation tick ---
+        render_ticks = render_ticks.wrapping_add(1);
+        if render_ticks % 120_000 == 0 {
+            if crate::browser::BROWSER.lock().tick_dino() {
+                needs_render = true;
+            }
+        }
+
         if needs_render {
             crate::desktop::render_desktop_frame();
         }
 
         // --- Periodic refresh for live RTC clock & System Monitor (low overhead) ---
-        render_ticks = render_ticks.wrapping_add(1);
         if render_ticks % 2_500_000 == 0 {
             crate::desktop::render_desktop_frame();
         }
