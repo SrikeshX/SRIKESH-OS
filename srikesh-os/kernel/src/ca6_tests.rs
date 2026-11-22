@@ -26,7 +26,7 @@ static mut CA6_TASKS: [TaskControlBlock; 8] = [
 
 pub fn run_all_tests() -> bool {
     serial::write_str("\n=================================================================\n");
-    serial::write_str("      SRIKESH OS — CA-6 MANDATORY ACADEMIC TEST SUITE (TC1-TC6)    \n");
+    serial::write_str("      SRIKESH OS — KERNEL VERIFICATION TEST SUITE (TC1-TC6)       \n");
     serial::write_str("=================================================================\n");
 
     let mut all_passed = true;
@@ -200,9 +200,9 @@ pub fn run_all_tests() -> bool {
 
     serial::write_str("\n=================================================================\n");
     if all_passed {
-        serial::write_str("  ✓ ALL 6 CA-6 ACADEMIC TEST CASES (TC1-TC6) PASSED WITH EXCELLENCE\n");
+        serial::write_str("  ✓ ALL 6 KERNEL VERIFICATION TEST CASES (TC1-TC6) PASSED\n");
     } else {
-        serial::write_str("  ✗ ONE OR MORE CA-6 TESTS FAILED\n");
+        serial::write_str("  ✗ ONE OR MORE KERNEL TESTS FAILED\n");
     }
     serial::write_str("=================================================================\n\n");
 

@@ -134,6 +134,20 @@ impl E1000Nic {
 
 pub static E1000: spin::Mutex<E1000Nic> = spin::Mutex::new(E1000Nic::new());
 
+/// Returns true only if an Intel PRO/1000 NIC was genuinely discovered, initialized, and has physical link UP.
+pub fn is_link_up() -> bool {
+    let nic = E1000.lock();
+    if !nic.initialized || nic.mmio_base == 0 {
+        return false;
+    }
+    let status = unsafe { nic.read_reg(REG_STATUS) };
+    (status & 0x02) != 0
+}
+
+pub fn is_initialized() -> bool {
+    E1000.lock().initialized
+}
+
 /// Probes for Intel PRO/1000 on PCI bus and initializes the NIC
 pub fn init_e1000() {
     serial::write_str("[NETWORK] Probing for Intel PRO/1000 Ethernet Controller...\n");

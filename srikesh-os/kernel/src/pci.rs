@@ -61,6 +61,12 @@ pub struct PciRegistry {
     pub wifi_chipset: &'static str,
     pub ethernet_detected: bool,
     pub ethernet_chipset: &'static str,
+    pub usb_detected: bool,
+    pub usb_controller: &'static str,
+    pub nvme_detected: bool,
+    pub sata_detected: bool,
+    pub audio_detected: bool,
+    pub gpu_name: &'static str,
 }
 
 impl PciRegistry {
@@ -69,9 +75,15 @@ impl PciRegistry {
             devices: [None; MAX_PCI_DEVICES],
             count: 0,
             wifi_detected: false,
-            wifi_chipset: "None",
+            wifi_chipset: "None Detected",
             ethernet_detected: false,
-            ethernet_chipset: "None",
+            ethernet_chipset: "None Detected",
+            usb_detected: false,
+            usb_controller: "None Detected",
+            nvme_detected: false,
+            sata_detected: false,
+            audio_detected: false,
+            gpu_name: "UEFI GOP Framebuffer",
         }
     }
 
@@ -128,7 +140,7 @@ pub fn scan_pci_bus() {
     let mut reg = PCI.lock();
     reg.count = 0;
 
-    for bus in 0..=3 { // Scan primary buses
+    for bus in 0..=15 { // Scan primary & PCIe root/endpoint buses
         for device in 0..32 {
             let vendor = unsafe { pci_read_u16(bus, device, 0, 0x00) };
             if vendor == 0xFFFF || vendor == 0x0000 {
@@ -186,8 +198,14 @@ pub fn scan_pci_bus() {
                         serial::write_str("Mass Storage: ");
                         match subclass {
                             0x01 => serial::write_str("IDE Controller\n"),
-                            0x06 => serial::write_str("SATA AHCI Controller\n"),
-                            0x08 => serial::write_str("NVMe Controller\n"),
+                            0x06 => {
+                                reg.sata_detected = true;
+                                serial::write_str("SATA AHCI Controller\n");
+                            }
+                            0x08 => {
+                                reg.nvme_detected = true;
+                                serial::write_str("NVMe Controller\n");
+                            }
                             _ => serial::write_str("Storage Controller\n"),
                         }
                     }
@@ -235,23 +253,48 @@ pub fn scan_pci_bus() {
                     }
                     0x03 => {
                         serial::write_str("Display: ");
-                        if vendor_id == 0x1234 && device_id == 0x1111 {
-                            serial::write_str("QEMU/Bochs Standard VGA Graphics\n");
+                        if vendor_id == 0x80EE && device_id == 0xBEEF {
+                            reg.gpu_name = "VirtualBox VBoxVGA/VMSVGA";
+                            serial::write_str("VirtualBox Graphics\n");
                         } else if vendor_id == 0x15AD && device_id == 0x0405 {
+                            reg.gpu_name = "VMware SVGA II Graphics";
                             serial::write_str("VMware SVGA II Graphics\n");
-                        } else if vendor_id == 0x80EE && device_id == 0xBEEF {
-                            serial::write_str("VirtualBox VBoxVGA Graphics\n");
                         } else if vendor_id == 0x10DE {
+                            reg.gpu_name = "NVIDIA GeForce GPU";
                             serial::write_str("NVIDIA GeForce GPU\n");
                         } else if vendor_id == 0x1002 {
+                            reg.gpu_name = "AMD Radeon GPU";
                             serial::write_str("AMD Radeon GPU\n");
                         } else if vendor_id == 0x8086 {
-                            serial::write_str("Intel HD/UHD/Iris Integrated Graphics\n");
+                            reg.gpu_name = "Intel HD/UHD/Iris Graphics";
+                            serial::write_str("Intel Integrated Graphics\n");
                         } else {
+                            reg.gpu_name = "Standard VGA/GOP Display";
                             serial::write_str("VGA Compatible Controller\n");
                         }
                     }
+                    0x04 => {
+                        reg.audio_detected = true;
+                        serial::write_str("Multimedia / Audio Controller\n");
+                    }
                     0x06 => serial::write_str("Bridge Controller\n"),
+                    0x0C => {
+                        if subclass == 0x03 {
+                            reg.usb_detected = true;
+                            reg.usb_controller = match prog_if {
+                                0x30 => "xHCI USB 3.x Controller",
+                                0x20 => "EHCI USB 2.0 Controller",
+                                0x10 => "OHCI USB 1.1 Controller",
+                                0x00 => "UHCI USB 1.1 Controller",
+                                _ => "USB Host Controller",
+                            };
+                            serial::write_str("USB Host: ");
+                            serial::write_str(reg.usb_controller);
+                            serial::write_str("\n");
+                        } else {
+                            serial::write_str("Serial Bus Controller\n");
+                        }
+                    }
                     _ => {
                         serial::write_str("Peripheral (Class 0x");
                         serial::write_hex(class_code as u64);

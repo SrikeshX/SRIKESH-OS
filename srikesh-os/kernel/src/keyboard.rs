@@ -1,30 +1,35 @@
-//! SRIKESH OS - PS/2 Keyboard Driver
+//! SRIKESH OS - PS/2 & Legacy-USB Keyboard Driver (IRQ 1 + Polling Hybrid)
 //!
 //! Features:
-//! - IRQ 1 (vector 33) handler.
-//! - I/O port 0x60 data reader.
-//! - Scancode Set 1 decoder with Shift, CapsLock, Ctrl modifier tracking.
-//! - Lock-free atomic / spinlock FIFO character ring buffer.
+//! - IRQ 1 (vector 33) handler + polling fallback for UEFI/APIC compatibility.
+//! - Lock-safe design: all non-ISR accesses run inside `without_interrupts`.
+//! - Never locks DESKTOP inside an interrupt handler (eliminates spinlock deadlocks).
+//! - Scancode Set 1 decoder with Shift, CapsLock, Ctrl, Arrow keys, and F1-F12.
 
 use x86_64::instructions::port::Port;
+use x86_64::instructions::interrupts::without_interrupts;
 use spin::Mutex;
 
 const DATA_PORT: u16 = 0x60;
 const STATUS_PORT: u16 = 0x64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KeyCode {
-    Char(char),
-    Enter,
-    Backspace,
-    Tab,
-    Escape,
-    Up,
-    Down,
-    Left,
-    Right,
-    None,
-}
+// Special internal char codes for function keys & navigation
+pub const KEY_UP: char = '\x11';
+pub const KEY_DOWN: char = '\x12';
+pub const KEY_LEFT: char = '\x13';
+pub const KEY_RIGHT: char = '\x14';
+pub const KEY_F1: char = '\u{0081}';
+pub const KEY_F2: char = '\u{0082}';
+pub const KEY_F3: char = '\u{0083}';
+pub const KEY_F4: char = '\u{0084}';
+pub const KEY_F5: char = '\u{0085}';
+pub const KEY_F6: char = '\u{0086}';
+pub const KEY_F7: char = '\u{0087}';
+pub const KEY_F8: char = '\u{0088}';
+pub const KEY_F9: char = '\u{0089}';
+pub const KEY_F10: char = '\u{008A}';
+pub const KEY_F11: char = '\u{008B}';
+pub const KEY_F12: char = '\u{008C}';
 
 struct KeyboardState {
     shift_pressed: bool,
@@ -88,17 +93,8 @@ const SCANCODE_UPPER: [char; 58] = [
     '*', '\0', ' ',
 ];
 
-/// Interrupt handler for IRQ 1 (Keyboard)
-pub fn handle_keyboard_interrupt() {
-    let mut status_port = Port::<u8>::new(STATUS_PORT);
-    let mut data_port = Port::<u8>::new(DATA_PORT);
-
-    let status = unsafe { status_port.read() };
-    if (status & 0x01) == 0 {
-        return; // No data in output buffer
-    }
-
-    let scancode = unsafe { data_port.read() };
+/// Decode a single scancode byte (must be called with interrupts disabled)
+pub fn process_scancode(scancode: u8) {
     let mut kb = KEYBOARD.lock();
 
     if scancode == 0xE0 {
@@ -108,15 +104,14 @@ pub fn handle_keyboard_interrupt() {
 
     if kb.extended_scancode {
         kb.extended_scancode = false;
-        // Ignore extended release codes
         if (scancode & 0x80) != 0 {
             return;
         }
         match scancode {
-            0x48 => kb.push_char('\x11'), // Up
-            0x50 => kb.push_char('\x12'), // Down
-            0x4B => kb.push_char('\x13'), // Left
-            0x4D => kb.push_char('\x14'), // Right
+            0x48 => kb.push_char(KEY_UP),
+            0x50 => kb.push_char(KEY_DOWN),
+            0x4B => kb.push_char(KEY_LEFT),
+            0x4D => kb.push_char(KEY_RIGHT),
             _ => {}
         }
         return;
@@ -135,51 +130,21 @@ pub fn handle_keyboard_interrupt() {
 
     // Key press (make code)
     match scancode {
-        0x2A | 0x36 => {
-            kb.shift_pressed = true;
-        }
-        0x1D => {
-            kb.ctrl_pressed = true;
-        }
-        0x3A => {
-            kb.caps_lock = !kb.caps_lock;
-        }
-        0x3B => { // F1 - Files (FileManager)
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::FileManager;
-        }
-        0x3C => { // F2 - Terminal
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Terminal;
-        }
-        0x3D => { // F3 - Browser
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Browser;
-        }
-        0x3E => { // F4 - Settings
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Settings;
-        }
-        0x3F => { // F5 - System Monitor
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SystemMonitor;
-        }
-        0x40 => { // F6 - Games
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Games;
-        }
-        0x41 => { // F7 - Calculator
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Calculator;
-        }
-        0x42 => { // F8 - Network Manager
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::NetworkManager;
-        }
-        0x43 => { // F9 - Software Store
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SoftwareStore;
-        }
-        0x44 => { // F10 - About
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::About;
-        }
-        0x57 => { // F11 - App Launcher (grid menu)
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::AppLauncher;
-        }
-        0x58 => { // F12 - Desktop (minimize all / show desktop)
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
-        }
+        0x2A | 0x36 => kb.shift_pressed = true,
+        0x1D => kb.ctrl_pressed = true,
+        0x3A => kb.caps_lock = !kb.caps_lock,
+        0x3B => kb.push_char(KEY_F1),
+        0x3C => kb.push_char(KEY_F2),
+        0x3D => kb.push_char(KEY_F3),
+        0x3E => kb.push_char(KEY_F4),
+        0x3F => kb.push_char(KEY_F5),
+        0x40 => kb.push_char(KEY_F6),
+        0x41 => kb.push_char(KEY_F7),
+        0x42 => kb.push_char(KEY_F8),
+        0x43 => kb.push_char(KEY_F9),
+        0x44 => kb.push_char(KEY_F10),
+        0x57 => kb.push_char(KEY_F11),
+        0x58 => kb.push_char(KEY_F12),
         code if (code as usize) < SCANCODE_LOWER.len() => {
             let use_upper = kb.shift_pressed ^ kb.caps_lock;
             let ch = if use_upper {
@@ -195,12 +160,35 @@ pub fn handle_keyboard_interrupt() {
     }
 }
 
+/// Interrupt handler for IRQ 1 (Keyboard) — runs with interrupts disabled
+pub fn handle_keyboard_interrupt() {
+    let mut status_port = Port::<u8>::new(STATUS_PORT);
+    let mut data_port = Port::<u8>::new(DATA_PORT);
+
+    let status = unsafe { status_port.read() };
+    if (status & 0x01) == 0 {
+        return;
+    }
+    // If bit 5 is set, this byte belongs to the auxiliary mouse port!
+    if (status & 0x20) != 0 {
+        let byte = unsafe { data_port.read() };
+        crate::mouse::process_mouse_byte(byte);
+        return;
+    }
+
+    let scancode = unsafe { data_port.read() };
+    process_scancode(scancode);
+}
+
+/// Safe non-ISR pop (disables interrupts while holding KEYBOARD lock)
 pub fn pop_key() -> Option<char> {
-    KEYBOARD.lock().pop_char()
+    without_interrupts(|| KEYBOARD.lock().pop_char())
 }
 
 /// Flush all buffered key events (call after boot to discard spurious scancodes)
 pub fn flush_key_buffer() {
-    let mut kb = KEYBOARD.lock();
-    kb.head = kb.tail;
+    without_interrupts(|| {
+        let mut kb = KEYBOARD.lock();
+        kb.head = kb.tail;
+    });
 }

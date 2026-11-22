@@ -21,6 +21,7 @@ mod interrupt_context;
 mod task_control;
 mod scheduler_tests;
 mod graphics;
+mod icons;
 mod startup;
 mod keyboard;
 mod mouse;
@@ -139,13 +140,13 @@ static PREEMPTION_SLICE: core::sync::atomic::AtomicU64 =
 // Scheduler specialization: configurable quantum and runtime statistics.
 const SCHEDULER_QUANTUM_TICKS: u64 = 5;
 
-static CONTEXT_SWITCH_COUNT: core::sync::atomic::AtomicU64 =
+pub(crate) static CONTEXT_SWITCH_COUNT: core::sync::atomic::AtomicU64 =
     core::sync::atomic::AtomicU64::new(0);
 
-static TASK1_DISPATCH_COUNT: core::sync::atomic::AtomicU64 =
+pub(crate) static TASK1_DISPATCH_COUNT: core::sync::atomic::AtomicU64 =
     core::sync::atomic::AtomicU64::new(0);
 
-static TASK2_DISPATCH_COUNT: core::sync::atomic::AtomicU64 =
+pub(crate) static TASK2_DISPATCH_COUNT: core::sync::atomic::AtomicU64 =
     core::sync::atomic::AtomicU64::new(0);
 
 
@@ -248,46 +249,82 @@ extern "C" fn preempt_task1_entry() -> ! {
         }
 
         if let Some(ch) = crate::keyboard::pop_key() {
-            serial::write_str("[KEYBOARD EVENT] Key typed: '");
-            serial::write_byte(ch as u8);
-            serial::write_str("'\n");
+            serial::write_str("[KEYBOARD EVENT] Key received\n");
 
-            let active_app = crate::desktop::DESKTOP.lock().active_app;
-
-            // ESC key (\x1B) closes any open window back to desktop
-            if ch == '\x1B' {
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
-                continue;
-            }
-
-            // Space bar on clean desktop → open App Launcher
-            if ch == ' ' && active_app == crate::desktop::ActiveApp::DesktopOnly {
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::AppLauncher;
+            // Optional Function Key Shortcuts (dispatched safely outside IRQ)
+            let f_app = match ch {
+                crate::keyboard::KEY_F1 => Some(crate::desktop::ActiveApp::FileManager),
+                crate::keyboard::KEY_F2 => Some(crate::desktop::ActiveApp::Terminal),
+                crate::keyboard::KEY_F3 => Some(crate::desktop::ActiveApp::Browser),
+                crate::keyboard::KEY_F4 => Some(crate::desktop::ActiveApp::Settings),
+                crate::keyboard::KEY_F5 => Some(crate::desktop::ActiveApp::SystemMonitor),
+                crate::keyboard::KEY_F6 => Some(crate::desktop::ActiveApp::Games),
+                crate::keyboard::KEY_F7 => Some(crate::desktop::ActiveApp::Calculator),
+                crate::keyboard::KEY_F8 => Some(crate::desktop::ActiveApp::NetworkManager),
+                crate::keyboard::KEY_F9 => Some(crate::desktop::ActiveApp::SoftwareStore),
+                crate::keyboard::KEY_F10 => Some(crate::desktop::ActiveApp::About),
+                crate::keyboard::KEY_F11 => Some(crate::desktop::ActiveApp::AppLauncher),
+                crate::keyboard::KEY_F12 => Some(crate::desktop::ActiveApp::DesktopOnly),
+                _ => None,
+            };
+            if let Some(target) = f_app {
+                crate::desktop::launch_app(target);
                 crate::desktop::render_desktop_frame();
                 continue;
             }
 
-            // Games always receive input when active
-            if active_app == crate::desktop::ActiveApp::Games {
-                crate::games::GAMES.lock().handle_key(ch);
-                // Don't consume key for shell when games is running
+            // ESC closes focused window, launcher, or context menu
+            if ch == '\x1B' {
+                crate::desktop::DESKTOP.lock().close_focused_or_overlay();
+                crate::desktop::render_desktop_frame();
                 continue;
             }
 
-            // Terminal only: route keys to shell (DesktopOnly does NOT auto-open terminal)
+            let active_app = crate::desktop::DESKTOP.lock().active_app;
+
+            // Live Search when App Launcher is open
+            if active_app == crate::desktop::ActiveApp::AppLauncher {
+                crate::desktop::DESKTOP.lock().handle_launcher_key(ch);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Games input
+            if active_app == crate::desktop::ActiveApp::Games {
+                crate::games::GAMES.lock().handle_key(ch);
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
+            // Calculator keyboard input
+            if active_app == crate::desktop::ActiveApp::Calculator {
+                let s = match ch {
+                    '0' => Some("0"), '1' => Some("1"), '2' => Some("2"), '3' => Some("3"),
+                    '4' => Some("4"), '5' => Some("5"), '6' => Some("6"), '7' => Some("7"),
+                    '8' => Some("8"), '9' => Some("9"), '+' => Some("+"), '-' => Some("-"),
+                    '*' => Some("*"), '/' => Some("/"), '=' | '\n' | '\r' => Some("="),
+                    'c' | 'C' | '\x08' => Some("C"),
+                    _ => None,
+                };
+                if let Some(lbl) = s {
+                    crate::desktop::DESKTOP.lock().calc_press(lbl);
+                    crate::desktop::render_desktop_frame();
+                }
+                continue;
+            }
+
+            // Terminal input (only when Terminal window is focused)
             if active_app == crate::desktop::ActiveApp::Terminal {
                 let mut shell = crate::shell::SHELL.lock();
                 if ch == '\n' || ch == '\r' {
                     let len = shell.input_len;
-                    if let Ok(_cmd_str) = core::str::from_utf8(&shell.input_buf[..len]) {
-                        let mut cmd_copy = [0u8; 128];
-                        for i in 0..len {
-                            cmd_copy[i] = shell.input_buf[i];
-                        }
-                        shell.input_len = 0;
-                        if let Ok(safe_str) = core::str::from_utf8(&cmd_copy[..len]) {
-                            shell.execute_command(safe_str);
-                        }
+                    let mut cmd_copy = [0u8; 128];
+                    for i in 0..len {
+                        cmd_copy[i] = shell.input_buf[i];
+                    }
+                    shell.input_len = 0;
+                    if let Ok(safe_str) = core::str::from_utf8(&cmd_copy[..len]) {
+                        shell.execute_command(safe_str);
                     }
                 } else if ch == '\x08' {
                     if shell.input_len > 0 {
@@ -300,11 +337,9 @@ extern "C" fn preempt_task1_entry() -> ! {
                         shell.input_len += 1;
                     }
                 }
+                drop(shell);
+                crate::desktop::render_desktop_frame();
             }
-            // NOTE: Terminal only opens via dock icon click or desktop icon click.
-            // Typing on desktop does NOT auto-open terminal (prevents spurious hardware key events).
-            // All other apps: keyboard input is ignored (apps are mouse-driven)
-            // Calculator: future key routing can be added here
         }
 
         if progress % 10_000_000 == 0 {
@@ -325,42 +360,63 @@ extern "C" fn preempt_task2_entry() -> ! {
     let mut render_ticks: u64 = 0;
 
     loop {
-        let mouse = crate::mouse::get_mouse_state();
+        // Hybrid IRQ + polling fallback for 8042 PS/2 & Legacy-USB HID
+        crate::mouse::poll_8042();
 
-        // --- Left click: launch apps ---
+        let mouse = crate::mouse::get_mouse_state();
+        let mut needs_render = false;
+
+        // --- Left click ---
         if mouse.left_button && !last_click {
             last_click = true;
-            serial::write_str("[MOUSE] Click at (");
+            serial::write_str("[MOUSE] Left Click at (");
             serial::write_u64(mouse.x as u64);
             serial::write_str(", ");
             serial::write_u64(mouse.y as u64);
             serial::write_str(")\n");
             crate::desktop::handle_mouse_click(mouse.x, mouse.y);
-            crate::desktop::render_desktop_frame();
-        } else if !mouse.left_button {
+            needs_render = true;
+        } else if !mouse.left_button && last_click {
             last_click = false;
+            // Release any active window drag
+            crate::desktop::handle_mouse_move(mouse.x, mouse.y, false);
         }
 
-        // --- Right click: close active window ---
+        // --- Right click: desktop context menu ---
         if mouse.right_button && !right_click_handled {
             right_click_handled = true;
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
-            crate::desktop::render_desktop_frame();
+            serial::write_str("[MOUSE] Right Click at (");
+            serial::write_u64(mouse.x as u64);
+            serial::write_str(", ");
+            serial::write_u64(mouse.y as u64);
+            serial::write_str(")\n");
+            crate::desktop::handle_right_click(mouse.x, mouse.y);
+            needs_render = true;
         } else if !mouse.right_button {
             right_click_handled = false;
         }
 
-        // --- Cursor movement: re-render whenever mouse position changes ---
-        let moved = mouse.x != last_mouse_x || mouse.y != last_mouse_y;
-        if moved {
+        // --- Cursor movement & window dragging ---
+        if mouse.x != last_mouse_x || mouse.y != last_mouse_y {
             last_mouse_x = mouse.x;
             last_mouse_y = mouse.y;
+            let _ = crate::desktop::handle_mouse_move(mouse.x, mouse.y, mouse.left_button);
+            needs_render = true;
+        }
+
+        // --- Scroll wheel ---
+        let scroll = crate::mouse::take_scroll_delta();
+        if scroll != 0 {
+            needs_render = true;
+        }
+
+        if needs_render {
             crate::desktop::render_desktop_frame();
         }
 
-        // --- Periodic refresh for clock update (every ~300K iters ~30fps equivalent) ---
+        // --- Periodic refresh for live RTC clock & System Monitor ---
         render_ticks = render_ticks.wrapping_add(1);
-        if render_ticks % 300_000 == 0 {
+        if render_ticks % 250_000 == 0 {
             crate::desktop::render_desktop_frame();
         }
 
@@ -405,8 +461,8 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
         let buffer = framebuffer.buffer_mut();
 
         graphics::GRAPHICS.lock().init(buffer, &info);
-        mouse::MOUSE.lock().set_bounds(info.width, info.height);
-        mouse::MOUSE.lock().init();
+        mouse::set_mouse_bounds(info.width, info.height);
+        mouse::init_mouse();
 
         logger::info("Double-Buffered Graphics & PS/2 Input Subsystems initialized");
         startup::run_boot_sequence();

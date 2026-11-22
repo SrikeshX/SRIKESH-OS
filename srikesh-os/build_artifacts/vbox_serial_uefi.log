@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003d011000,
-    metadata: 3793128,
+    addr: 0x000000003d003000,
+    metadata: 3852488,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e5784, mem_size: e5784, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e5790, virtual_addr: e6790, physical_addr: e6790, file_size: 3324f, mem_size: 3324f, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 1189e0, virtual_addr: 11a9e0, physical_addr: 11a9e0, file_size: 2480, mem_size: 2620, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e5b34, mem_size: e5b34, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e5b40, virtual_addr: e6b40, physical_addr: e6b40, file_size: 3d59f, mem_size: 3d59f, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 1230e0, virtual_addr: 1250e0, physical_addr: 1250e0, file_size: 2af8, mem_size: 2f20, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 11ae60, virtual_addr: 11de60, physical_addr: 11de60, file_size: 2629a0, mem_size: 1291ed8, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 125be0, virtual_addr: 128be0, physical_addr: 128be0, file_size: 2629e0, mem_size: 1291d40, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x80000fb840
+INFO : Entry point at: 0x800011e110
 INFO : Creating GDT at PhysAddr(0x116f000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
+INFO : Jumping to kernel entry point at VirtAddr(0x800011e110)
 [INFO] SRIKESH OS kernel started
 [MEMORY] Usable RAM: 984 MB
 [MEMORY] Usable regions: 98
-[MEMORY] Kernel size: 3704 KB
+[MEMORY] Kernel size: 3762 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -74,11 +74,10 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
 [ATA] Discovered Master Drive: Model: VBOX HARDDISK                            | Capacity: 5 MB
 [STORAGE] Boot medium probed successfully. Sectors: 10368
 
-[CROSS-REBOOT PERSISTENCE] Writing unique test file to hardware sector LBA 2048...
-[CROSS-REBOOT PERSISTENCE] ✓ Unique test file committed to hardware disk LBA 2048.
-[CROSS-REBOOT PERSISTENCE] ✓ File: /home/srikesh/persist_verify_2026.dat (53 bytes)
-[CROSS-REBOOT PERSISTENCE] Ready for shutdown and restart verification.
-[STORAGE] Current System Boot Counter: #1 (Persistent state confirmed)
+[CROSS-REBOOT PERSISTENCE] ✓ FOUND PERSISTENT DISK BLOCK ON SECTOR LBA 2048!
+[CROSS-REBOOT PERSISTENCE] ✓ File Name: /home/srikesh/persist_verify_2026.dat
+[CROSS-REBOOT PERSISTENCE] ✓ Content verification: 100% MATCH ACROSS VIRTUALBOX SHUTDOWN & RESTART!
+[STORAGE] Current System Boot Counter: #3 (Persistent state confirmed)
 
 [FILESYSTEM TEST] Starting VFS & Persistence Verification...
 [FILESYSTEM TEST] ✓ Created: /home/srikesh/persistence_test.txt
@@ -98,7 +97,7 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
 [PCI] Dev 0x0000000000000000:0x0000000000000002.0x0000000000000000 | Vendor: 0x0x00000000000015AD Device: 0x0x0000000000000405 | Display: VMware SVGA II Graphics
 [PCI] Dev 0x0000000000000000:0x0000000000000003.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x000000000000100E | Network: Ethernet Adapter (Intel PRO/1000 Gigabit)
 [PCI] Dev 0x0000000000000000:0x0000000000000004.0x0000000000000000 | Vendor: 0x0x00000000000080EE Device: 0x0x000000000000CAFE | Peripheral (Class 0x0x0000000000000008)
-[PCI] Dev 0x0000000000000000:0x0000000000000005.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000002415 | Peripheral (Class 0x0x0000000000000004)
+[PCI] Dev 0x0000000000000000:0x0000000000000005.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000002415 | Multimedia / Audio Controller
 [PCI] Dev 0x0000000000000000:0x0000000000000007.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000007113 | Bridge Controller
 [PCI] Dev 0x0000000000000000:0x000000000000000D.0x0000000000000000 | Vendor: 0x0x0000000000008086 Device: 0x0x0000000000002829 | Mass Storage: SATA AHCI Controller
 [PCI] Hardware scan completed: 9 PCI devices cataloged.
@@ -147,7 +146,7 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
 [INFO] All scheduler self-tests passed
 
 =================================================================
-      SRIKESH OS — CA-6 MANDATORY ACADEMIC TEST SUITE (TC1-TC6)    
+      SRIKESH OS — KERNEL VERIFICATION TEST SUITE (TC1-TC6)       
 =================================================================
 
 [TEST TC1] Minimum Configuration (2 Controlled Tasks)...
@@ -171,7 +170,7 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
 [TEST TC6] ✓ PASSED: Run 1 and Run 2 produced 100% identical deterministic scheduling traces.
 
 =================================================================
-  ✓ ALL 6 CA-6 ACADEMIC TEST CASES (TC1-TC6) PASSED WITH EXCELLENCE
+  ✓ ALL 6 KERNEL VERIFICATION TEST CASES (TC1-TC6) PASSED
 =================================================================
 
 [INFO] Starting memory allocator tests
@@ -185,31 +184,31 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
 [SPKG] S-Pkg Registry synchronized with persistent storage.
 ==============================================================
   SRIKESH OS - S-Shell CLI v1.0 [Ready]
-  Academic Reference: CA-6 Flagship OS Engineering
+  Architecture: Independent x86-64 Rust no_std Micro-OS
   Hardware Target: Dell Vostro 3520 (x86-64 Architecture)
   Type 'help' for commands, or click any dock icon below
 ==============================================================
 [KEYBOARD] Boot-time key buffer flushed
 
 --- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
-  [TSC] Cycles from Kernel Entry to Desktop: 21472703110 cycles
+  [TSC] Cycles from Kernel Entry to Desktop: 19761638450 cycles
   [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
-  [TSC] Approx Duration at nominal 3.0 GHz : 7157 ms
+  [TSC] Approx Duration at nominal 3.0 GHz : 6587 ms
 ---------------------------------------------------
 
 [INFO] Initializing interrupt-driven task contexts
 [INFO] Both interrupt task contexts initialized
 [DEBUG] TASK 1 FRAME WORDS:
-[DEBUG] FRAME[0x000000000000000F] = 0x00000080000F8830
+[DEBUG] FRAME[0x000000000000000F] = 0x0000008000119E90
 [DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
 [DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
-[DEBUG] FRAME[0x0000000000000012] = 0x000000800012E268
+[DEBUG] FRAME[0x0000000000000012] = 0x000000800035B558
 [DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
 [DEBUG] CURRENT CS = 0x0000000000000008
-[DEBUG] TASK 1 initial frame: 0x000000800012E1C8
-[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800012E268
-[DEBUG] TASK 2 initial frame: 0x000000800014E1F8
-[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800014E298
+[DEBUG] TASK 1 initial frame: 0x000000800035B4B8
+[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800035B558
+[DEBUG] TASK 2 initial frame: 0x000000800037B4E8
+[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800037B588
 [INFO] Initial task dispatched
 [INFO] Starting timer-driven Round Robin scheduler
 
@@ -218,10 +217,15 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000fb840)
 [PREEMPT] TASK 2 STARTED
 
 [PERFORMANCE] Scheduler runtime snapshot
-[PERFORMANCE] Context switches: 30
+[PERFORMANCE] Context switches: 28
 [PERFORMANCE] Task 1 dispatches: 16
 [PERFORMANCE] Task 2 dispatches: 15
 [PERFORMANCE] Scheduler quantum: 5 ticks
 [PREEMPT] TASK 1 RUNNING
+[PREEMPT] TASK 1 RUNNING
+[MOUSE] Left Click at (176, 736)
+[PREEMPT] TASK 1 RUNNING
+[MOUSE] Left Clic[PREEMPT] TASk at (392, 436)
+K 1 RUNNING
 [PREEMPT] TASK 1 RUNNING
 [PREEMPT] TASK 1 RUNNING

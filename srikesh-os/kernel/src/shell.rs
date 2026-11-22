@@ -38,7 +38,7 @@ impl ShellState {
     pub fn init(&mut self) {
         self.print_line("==============================================================");
         self.print_line("  SRIKESH OS - S-Shell CLI v1.0 [Ready]");
-        self.print_line("  Academic Reference: CA-6 Flagship OS Engineering");
+        self.print_line("  Architecture: Independent x86-64 Rust no_std Micro-OS");
         self.print_line("  Hardware Target: Dell Vostro 3520 (x86-64 Architecture)");
         self.print_line("  Type 'help' for commands, or click any dock icon below");
         self.print_line("==============================================================");
@@ -96,7 +96,7 @@ impl ShellState {
                 self.print_line("  cat <path>        - Read and display file contents");
                 self.print_line("  write <path> <txt>- Write persistent text payload to file");
                 self.print_line("  app <name>        - Launch app: browser, games, edit, calc, files, etc");
-                self.print_line("  test ca6          - Execute complete formal CA-6 test suite (TC1-TC6)");
+                self.print_line("  test kernel       - Execute kernel verification test suite (TC1-TC6)");
                 self.print_line("  spkg list         - Display S-Pkg software repository state");
                 self.print_line("  spkg install <id> - Install an application package");
                 self.print_line("  spkg remove <id>  - Uninstall an application package");
@@ -257,85 +257,85 @@ impl ShellState {
                 let url = parts.next().unwrap_or("http://neverssl.com");
                 self.print_line("[HTTP] Initiating HTTP/1.0 GET request via e1000 Gigabit socket...");
                 crate::browser::BROWSER.lock().set_url(url);
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Browser;
-                self.print_line("[HTTP] Response: HTTP/1.0 200 OK. Opening Web Browser window...");
+                crate::desktop::launch_app(crate::desktop::ActiveApp::Browser);
+                self.print_line("[HTTP] Opening Web Browser window...");
             }
             "test" => {
-                let sub = parts.next().unwrap_or("");
-                if sub == "ca6" {
-                    self.print_line("[TEST] Executing formal CA-6 OS Academic Test Suite (TC1-TC6)...");
+                let sub = parts.next().unwrap_or("kernel");
+                if sub == "kernel" || sub == "all" {
+                    self.print_line("[TEST] Executing SRIKESH OS Kernel Verification Suite (TC1-TC6)...");
                     let ok = crate::ca6_tests::run_all_tests();
                     if ok {
-                        self.print_line("[TEST] CA-6 Assessment Verification: 100% PASSED (6/6 Test Cases)");
+                        self.print_line("[TEST] Kernel Verification: 100% PASSED (6/6 Test Cases)");
                     } else {
-                        self.print_line("[TEST] CA-6 Verification Encountered Failures.");
+                        self.print_line("[TEST] Kernel Verification Encountered Failures.");
                     }
                 } else {
-                    self.print_line("Usage: test ca6");
+                    self.print_line("Usage: test kernel");
                 }
             }
             "browser" => {
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Browser;
-                self.print_line("[WINDOW] Switched to Web Browser");
+                crate::desktop::launch_app(crate::desktop::ActiveApp::Browser);
+                self.print_line("[WINDOW] Opened Web Browser");
             }
             "games" | "game" => {
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Games;
-                self.print_line("[WINDOW] Switched to Games Suite (9 Lightweight Offline Games)");
+                crate::desktop::launch_app(crate::desktop::ActiveApp::Games);
+                self.print_line("[WINDOW] Opened Games Suite (9 Lightweight Offline Games)");
             }
             "edit" | "editor" => {
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::TextEditor;
-                self.print_line("[WINDOW] Switched to Royal S-Edit Text Editor");
+                crate::desktop::launch_app(crate::desktop::ActiveApp::TextEditor);
+                self.print_line("[WINDOW] Opened Royal S-Edit Text Editor");
             }
             "calc" | "calculator" => {
-                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Calculator;
-                self.print_line("[WINDOW] Switched to Calculator");
+                crate::desktop::launch_app(crate::desktop::ActiveApp::Calculator);
+                self.print_line("[WINDOW] Opened Calculator");
             }
             "app" | "window" => {
                 let target = parts.next().unwrap_or("");
                 match target {
                     "browser" | "web" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Browser;
-                        self.print_line("[WINDOW] Active application set to Web Browser");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::Browser);
+                        self.print_line("[WINDOW] Opened Web Browser");
                     }
                     "term" | "terminal" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Terminal;
-                        self.print_line("[WINDOW] Active application set to Terminal");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::Terminal);
+                        self.print_line("[WINDOW] Opened Terminal");
                     }
                     "store" | "software" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SoftwareStore;
-                        self.print_line("[WINDOW] Active application set to Software Store");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::SoftwareStore);
+                        self.print_line("[WINDOW] Opened Software Store");
                     }
                     "files" | "filemanager" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::FileManager;
-                        self.print_line("[WINDOW] Active application set to File Manager");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::FileManager);
+                        self.print_line("[WINDOW] Opened File Manager");
                     }
                     "edit" | "editor" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::TextEditor;
-                        self.print_line("[WINDOW] Active application set to Text Editor");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::TextEditor);
+                        self.print_line("[WINDOW] Opened Text Editor");
                     }
                     "calc" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Calculator;
-                        self.print_line("[WINDOW] Active application set to Calculator");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::Calculator);
+                        self.print_line("[WINDOW] Opened Calculator");
                     }
                     "games" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Games;
-                        self.print_line("[WINDOW] Active application set to Games Suite");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::Games);
+                        self.print_line("[WINDOW] Opened Games Suite");
                     }
                     "net" | "network" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::NetworkManager;
-                        self.print_line("[WINDOW] Active application set to Network Manager");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::NetworkManager);
+                        self.print_line("[WINDOW] Opened Network Manager");
                     }
                     "mon" | "monitor" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SystemMonitor;
-                        self.print_line("[WINDOW] Active application set to System Monitor");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::SystemMonitor);
+                        self.print_line("[WINDOW] Opened System Monitor");
                     }
                     "settings" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Settings;
-                        self.print_line("[WINDOW] Active application set to Settings");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::Settings);
+                        self.print_line("[WINDOW] Opened Settings");
                     }
                     "about" | "info" => {
-                        crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::About;
-                        self.print_line("[WINDOW] Active application set to About SRIKESH OS");
+                        crate::desktop::launch_app(crate::desktop::ActiveApp::About);
+                        self.print_line("[WINDOW] Opened About SRIKESH OS");
                     }
                     _ => {
                         self.print_line("Usage: app <browser|term|files|edit|calc|games|net|mon|settings|store|about>");

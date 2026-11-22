@@ -137,7 +137,7 @@ impl WebBrowser {
         gfx.draw_text(win_x + 14, bm_y, "Bookmarks:", Color::DARK_GOLD, 1);
         let bms = [
             ("Portal", "srikesh://home"),
-            ("CA-6 Hub", "srikesh://ca6"),
+            ("OS Spec", "srikesh://spec"),
             ("Live NeverSSL", "http://neverssl.com"),
             ("Rust Docs", "srikesh://rust"),
         ];
