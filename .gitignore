@@ -1,0 +1,12 @@
+# Large generated Live USB / ISO build outputs (>100 MB GitHub limit)
+srikesh-os-hybrid/out/
+*.iso
+*.squashfs
+*.vdi
+*.vmdk
+
+# Rust / Python build caches
+**/target/
+**/__pycache__/
+*.pyc
+OVMF_VARS.fd
