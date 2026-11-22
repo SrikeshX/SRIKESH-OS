@@ -10,18 +10,19 @@
 
 <br />
 
-[![Architecture](https://img.shields.io/badge/Arch-x86__64-0EA5E9?style=for-the-badge&logo=intel&logoColor=white)](#system-architecture)
-[![Language](https://img.shields.io/badge/Kernel-Rust%20no__std-F97316?style=for-the-badge&logo=rust&logoColor=white)](#bare-metal-rust-microkernel-srikesh-os)
-[![Boot](https://img.shields.io/badge/Boot-UEFI%20Secure%20Boot%20%2B%20BIOS-22C55E?style=for-the-badge&logo=linux&logoColor=white)](#universal-live-usb-boot-guide)
-[![Virtualization](https://img.shields.io/badge/Verified-Oracle%20VirtualBox%207.2-1D4ED8?style=for-the-badge&logo=virtualbox&logoColor=white)](#verification--benchmarks)
+[![Architecture](https://img.shields.io/badge/Arch-x86__64-0EA5E9?style=for-the-badge&logo=intel&logoColor=white)](#-system-architecture)
+[![Language](https://img.shields.io/badge/Kernel-Rust%20no__std-F97316?style=for-the-badge&logo=rust&logoColor=white)](#-bare-metal-rust-microkernel-srikesh-os)
+[![Boot](https://img.shields.io/badge/Boot-UEFI%20Secure%20Boot%20%2B%20BIOS-22C55E?style=for-the-badge&logo=linux&logoColor=white)](#-build-test--universal-live-usb-boot-guide)
+[![Virtualization](https://img.shields.io/badge/Verified-Oracle%20VirtualBox%207.2-1D4ED8?style=for-the-badge&logo=virtualbox&logoColor=white)](#-verification--benchmarks)
 [![Hardware](https://img.shields.io/badge/Bare--Metal-Dell%20Vostro%203520-38BDF8?style=for-the-badge&logo=dell&logoColor=white)](#real-hardware-verification)
 [![Size](https://img.shields.io/badge/Microkernel-5.1%20MB%20UEFI-8B5CF6?style=for-the-badge)](#measured-footprint)
-[![Download ISO](https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20(764%20MB)-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso)
 
-<br />
+<a href="https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main"><img src="https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20%E2%80%A2%20764%20MB-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Download SRIKESH OS ISO from Hugging Face" /></a>
+
+<br /><br />
 
 [Overview](#-overview) •
-[Download ISO](#-download-bootable-iso) •
+[Download ISO](#download-bootable-iso) •
 [Dual Editions](#-dual-edition-architecture) •
 [Architecture](#-system-architecture) •
 [Benchmarks](#-verification--benchmarks) •
@@ -196,15 +197,17 @@ RUST MICRO-OS KERNEL PROJECT/
 
 ---
 
+<a id="download-bootable-iso"></a>
 ## ⬇️ Download Bootable ISO
 
 The verified **Universal v3 Hybrid Bootable ISO** (UEFI Secure Boot + Legacy BIOS) is hosted on Hugging Face:
 
 | Release Asset | Size | Download | SHA-256 Checksum |
 | :--- | :---: | :---: | :--- |
-| **`srikesh-os-hybrid-universal.iso`** | **764 MiB** *(801 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso)** | `b4adf19f1f70b4160b420551beff672c1dfde23f36b05b63dbe3c0ba13af8388` |
+| **`srikesh-os-hybrid-universal.iso`** | **764 MiB** *(801 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso?download=true)** | `b4adf19f1f70b4160b420551beff672c1dfde23f36b05b63dbe3c0ba13af8388` |
+| **`srikesh-os-hybrid-universal.iso.sha256`** | **98 Bytes** | **[🔐 Download SHA-256 File](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso.sha256?download=true)** | Verification checksum |
 
-- **Hugging Face Release Hub:** https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases
+- **Hugging Face Files & Releases:** https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main
 - **Quick Start:** Flash the ISO onto any ≥ 2 GB USB drive using **Rufus**, **BalenaEtcher**, or **Ventoy** — or attach it directly as a virtual DVD in **Oracle VirtualBox** (UEFI enabled) to try SRIKESH OS immediately without touching your internal drive.
 
 ---
