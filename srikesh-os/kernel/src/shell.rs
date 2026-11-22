@@ -35,6 +35,15 @@ impl ShellState {
         }
     }
 
+    pub fn init(&mut self) {
+        self.print_line("==============================================================");
+        self.print_line("  SRIKESH OS - S-Shell CLI v1.0 [Ready]");
+        self.print_line("  Academic Reference: CA-6 Flagship OS Engineering");
+        self.print_line("  Hardware Target: Dell Vostro 3520 (x86-64 Architecture)");
+        self.print_line("  Type 'help' for commands, or click any dock icon below");
+        self.print_line("==============================================================");
+    }
+
     pub fn print_line(&mut self, text: &str) {
         serial::write_str(text);
         serial::write_str("\n");

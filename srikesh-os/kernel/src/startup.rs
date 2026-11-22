@@ -135,7 +135,7 @@ pub fn run_boot_sequence() {
 
     for (pct, msg) in checkpoints {
         render_startup_screen(pct, msg);
-        for _ in 0..600_000 {
+        for _ in 0..12_000_000 {
             core::hint::spin_loop();
         }
     }

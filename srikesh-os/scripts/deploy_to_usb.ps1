@@ -68,6 +68,11 @@ $destEfi = "D:\efi\boot"
 New-Item -ItemType Directory -Path $destEfi -Force | Out-Null
 Copy-Item -Path "$usbRoot\efi\boot\bootx64.efi" -Destination "$destEfi\bootx64.efi" -Force
 Copy-Item -Path "$usbRoot\kernel-x86_64" -Destination "D:\kernel-x86_64" -Force
+if (Test-Path "$usbRoot\boot.json") {
+    Copy-Item -Path "$usbRoot\boot.json" -Destination "D:\boot.json" -Force
+    Copy-Item -Path "$usbRoot\boot.json" -Destination "$destEfi\boot.json" -Force
+    Write-Host "  -> D:\boot.json            [COPIED - Framebuffer Logging = false]" -ForegroundColor Green
+}
 
 Write-Host "  -> D:\efi\boot\bootx64.efi [COPIED - $(Get-Item "D:\efi\boot\bootx64.efi").Length bytes]" -ForegroundColor Green
 Write-Host "  -> D:\kernel-x86_64        [COPIED - $(Get-Item "D:\kernel-x86_64").Length bytes]" -ForegroundColor Green

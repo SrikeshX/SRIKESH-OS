@@ -1,6 +1,6 @@
 use core::arch::global_asm;
 
-pub const TASK_STACK_SIZE: usize = 4096;
+pub const TASK_STACK_SIZE: usize = 65536;
 
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -124,15 +124,13 @@ pub fn initialize_interrupt_frame(
     stack: &mut TaskStack,
     entry: extern "C" fn() -> !,
 ) -> usize {
-    use x86_64::instructions::segmentation::{Segment, CS, SS};
-
     let top = stack.data.as_mut_ptr() as usize + TASK_STACK_SIZE;
     let initial_rsp = (top & !0xF) - 8;
     let frame = (initial_rsp - 20 * core::mem::size_of::<usize>())
         as *mut usize;
 
-    let cs = CS::get_reg().0 as usize;
-    let ss = SS::get_reg().0 as usize;
+    let cs = crate::gdt::get_selectors().code_selector.0 as usize;
+    let ss = crate::gdt::get_selectors().data_selector.0 as usize;
 
     unsafe {
         for index in 0..15 {

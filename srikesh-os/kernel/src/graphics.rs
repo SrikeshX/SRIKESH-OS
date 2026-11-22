@@ -78,8 +78,9 @@ impl Color {
     }
 }
 
-// 4 MB static backbuffer in BSS (zero cost on disk image)
-const MAX_BACKBUFFER_SIZE: usize = 1024 * 768 * 4;
+// 16 MB static backbuffer in BSS (zero cost on disk image)
+// Accommodates up to 2560x1440x4 = 14.7 MB, fully covering 1920x1080x4 = 8.3 MB for Dell Vostro 3520
+const MAX_BACKBUFFER_SIZE: usize = 1920 * 1080 * 4 * 2;
 static mut BACKBUFFER: [u8; MAX_BACKBUFFER_SIZE] = [0; MAX_BACKBUFFER_SIZE];
 
 pub struct GraphicsEngine {

@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003d760000,
-    metadata: 1410856,
+    addr: 0x000000003d121000,
+    metadata: 3773600,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e4974, mem_size: e4974, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e4980, virtual_addr: e5980, physical_addr: e5980, file_size: 2d3bf, mem_size: 2d3bf, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 111d40, virtual_addr: 113d40, physical_addr: 113d40, file_size: 1e10, mem_size: 22c0, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e4f24, mem_size: e4f24, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e4f30, virtual_addr: e5f30, physical_addr: e5f30, file_size: 2ff5f, mem_size: 2ff5f, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 114e90, virtual_addr: 116e90, physical_addr: 116e90, file_size: 1fd0, mem_size: 2170, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 113b50, virtual_addr: 116b50, physical_addr: 116b50, file_size: 288c0, mem_size: 37bf50, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 116e60, virtual_addr: 119e60, physical_addr: 119e60, file_size: 262998, mem_size: 1291ef0, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x80000f5550
-INFO : Creating GDT at PhysAddr(0x48d000)
+INFO : Entry point at: 0x800010b750
+INFO : Creating GDT at PhysAddr(0x1170000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x80000f5550)
+INFO : Jumping to kernel entry point at VirtAddr(0x800010b750)
 [INFO] SRIKESH OS kernel started
-[MEMORY] Usable RAM: 999 MB
-[MEMORY] Usable regions: 97
-[MEMORY] Kernel size: 1377 KB
+[MEMORY] Usable RAM: 984 MB
+[MEMORY] Usable regions: 98
+[MEMORY] Kernel size: 3685 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -71,8 +71,8 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000f5550)
 [STORAGE] Initializing SRIKESH OS Persistence & Filesystem Subsystem...
 [VFS] Virtual File System initialized with standard system hierarchy.
 [STORAGE_GUARD] Registered Device #0x0000000000000000 Bus: Virtual Disk -> Policy: LOCKED (READ-ONLY PROTECTED)
-[ATA] Discovered Master Drive: Model: VBOX HARDDISK                            | Capacity: 3 MB
-[STORAGE] Boot medium probed successfully. Sectors: 6272
+[ATA] Discovered Master Drive: Model: VBOX HARDDISK                            | Capacity: 5 MB
+[STORAGE] Boot medium probed successfully. Sectors: 10368
 
 [CROSS-REBOOT PERSISTENCE] Writing unique test file to hardware sector LBA 2048...
 [CROSS-REBOOT PERSISTENCE] ✓ Unique test file committed to hardware disk LBA 2048.
@@ -182,3 +182,35 @@ INFO : Jumping to kernel entry point at VirtAddr(0x80000f5550)
 [INFO] All memory allocator tests passed
 [SPKG] Registering S-Pkg Package Repository in VFS (/packages/)...
 [SPKG] S-Pkg Registry synchronized with persistent storage.
+==============================================================
+  SRIKESH OS - S-Shell CLI v1.0 [Ready]
+  Academic Reference: CA-6 Flagship OS Engineering
+  Hardware Target: Dell Vostro 3520 (x86-64 Architecture)
+  Type 'help' for commands, or click any dock icon below
+==============================================================
+
+--- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
+  [TSC] Cycles from Kernel Entry to Desktop: 21390679915 cycles
+  [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
+  [TSC] Approx Duration at nominal 3.0 GHz : 7130 ms
+---------------------------------------------------
+
+[INFO] Initializing interrupt-driven task contexts
+[INFO] Both interrupt task contexts initialized
+[DEBUG] TASK 1 FRAME WORDS:
+[DEBUG] FRAME[0x000000000000000F] = 0x00000080001089F0
+[DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
+[DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
+[DEBUG] FRAME[0x0000000000000012] = 0x000000800024BFE8
+[DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
+[DEBUG] CURRENT CS = 0x0000000000000008
+[DEBUG] TASK 1 initial frame: 0x000000800024BF48
+[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800024BFE8
+[DEBUG] TASK 2 initial frame: 0x000000800026BF78
+[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800026C018
+[INFO] Initial task dispatched
+[INFO] Starting timer-driven Round Robin scheduler
+
+[PREEMPT] TASK 1 STARTED
+
+[PREEMPT] TASK 2 STARTED

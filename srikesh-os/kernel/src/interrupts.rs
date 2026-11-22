@@ -81,7 +81,20 @@ global_asm!(
 static IDT: spin::Lazy<InterruptDescriptorTable> = spin::Lazy::new(|| {
     let mut idt = InterruptDescriptorTable::new();
 
-    idt.double_fault.set_handler_fn(double_fault_handler);
+    unsafe {
+        idt.double_fault
+            .set_handler_fn(double_fault_handler)
+            .set_stack_index(crate::gdt::DOUBLE_FAULT_IST_INDEX);
+        idt.page_fault
+            .set_handler_fn(page_fault_handler)
+            .set_stack_index(crate::gdt::PAGE_FAULT_IST_INDEX);
+        idt.general_protection_fault
+            .set_handler_fn(general_protection_fault_handler)
+            .set_stack_index(crate::gdt::PAGE_FAULT_IST_INDEX);
+        idt.invalid_opcode.set_handler_fn(invalid_opcode_handler);
+        idt.divide_error.set_handler_fn(divide_error_handler);
+        idt.breakpoint.set_handler_fn(breakpoint_handler);
+    }
 
     idt[KEYBOARD_INTERRUPT_ID].set_handler_fn(keyboard_interrupt_handler);
     idt[MOUSE_INTERRUPT_ID].set_handler_fn(mouse_interrupt_handler);
@@ -100,10 +113,82 @@ pub fn init_idt() {
     IDT.load();
 }
 
+extern "x86-interrupt" fn breakpoint_handler(
+    stack_frame: x86_64::structures::idt::InterruptStackFrame,
+) {
+    crate::serial::write_str("[EXCEPTION] BREAKPOINT\n");
+    crate::serial::write_str("  RIP: ");
+    crate::serial::write_hex(stack_frame.instruction_pointer.as_u64());
+    crate::serial::write_str("\n");
+}
+
+extern "x86-interrupt" fn divide_error_handler(
+    stack_frame: x86_64::structures::idt::InterruptStackFrame,
+) {
+    crate::serial::write_str("\n[FATAL EXCEPTION] DIVIDE ERROR (#DE)\n");
+    crate::serial::write_str("  RIP: ");
+    crate::serial::write_hex(stack_frame.instruction_pointer.as_u64());
+    crate::serial::write_str("\n");
+    loop { x86_64::instructions::hlt(); }
+}
+
+extern "x86-interrupt" fn invalid_opcode_handler(
+    stack_frame: x86_64::structures::idt::InterruptStackFrame,
+) {
+    crate::serial::write_str("\n[FATAL EXCEPTION] INVALID OPCODE (#UD)\n");
+    crate::serial::write_str("  RIP: ");
+    crate::serial::write_hex(stack_frame.instruction_pointer.as_u64());
+    crate::serial::write_str("\n");
+    loop { x86_64::instructions::hlt(); }
+}
+
+extern "x86-interrupt" fn general_protection_fault_handler(
+    stack_frame: x86_64::structures::idt::InterruptStackFrame,
+    error_code: u64,
+) {
+    crate::serial::write_str("\n[FATAL EXCEPTION] GENERAL PROTECTION FAULT (#GP)\n");
+    crate::serial::write_str("  Error Code: ");
+    crate::serial::write_hex(error_code);
+    crate::serial::write_str("\n  RIP: ");
+    crate::serial::write_hex(stack_frame.instruction_pointer.as_u64());
+    crate::serial::write_str("\n  CS: ");
+    crate::serial::write_hex(stack_frame.code_segment.0 as u64);
+    crate::serial::write_str("\n  RFLAGS: ");
+    crate::serial::write_hex(stack_frame.cpu_flags.bits());
+    crate::serial::write_str("\n");
+    loop { x86_64::instructions::hlt(); }
+}
+
+extern "x86-interrupt" fn page_fault_handler(
+    stack_frame: x86_64::structures::idt::InterruptStackFrame,
+    error_code: x86_64::structures::idt::PageFaultErrorCode,
+) {
+    use x86_64::registers::control::Cr2;
+    crate::serial::write_str("\n[FATAL EXCEPTION] PAGE FAULT (#PF)\n");
+    crate::serial::write_str("  Accessed Address (CR2): ");
+    if let Ok(addr) = Cr2::read() {
+        crate::serial::write_hex(addr.as_u64());
+    } else {
+        crate::serial::write_str("<invalid>");
+    }
+    crate::serial::write_str("\n  Error Code: ");
+    crate::serial::write_hex(error_code.bits());
+    crate::serial::write_str("\n  RIP: ");
+    crate::serial::write_hex(stack_frame.instruction_pointer.as_u64());
+    crate::serial::write_str("\n");
+    loop { x86_64::instructions::hlt(); }
+}
+
 extern "x86-interrupt" fn double_fault_handler(
-    _stack_frame: x86_64::structures::idt::InterruptStackFrame,
-    _error_code: u64,
+    stack_frame: x86_64::structures::idt::InterruptStackFrame,
+    error_code: u64,
 ) -> ! {
+    crate::serial::write_str("\n[FATAL EXCEPTION] DOUBLE FAULT (#DF)\n");
+    crate::serial::write_str("  Error Code: ");
+    crate::serial::write_hex(error_code);
+    crate::serial::write_str("\n  RIP: ");
+    crate::serial::write_hex(stack_frame.instruction_pointer.as_u64());
+    crate::serial::write_str("\n");
     loop {
         x86_64::instructions::hlt();
     }

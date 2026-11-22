@@ -5,6 +5,7 @@
 #![allow(unused_unsafe)]
 #![allow(static_mut_refs)]
 mod cpu;
+mod gdt;
 mod task;
 mod ready_queue;
 mod scheduler;
@@ -330,6 +331,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     let tsc_boot_start = unsafe { core::arch::x86_64::_rdtsc() };
     serial::init();
     x86_64::instructions::interrupts::disable();
+    gdt::init();
     interrupts::init_idt();
     pic::initialize_pics();
     timer::init();
@@ -389,6 +391,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     memory::allocator_demo();
 
     spkg::init_packages();
+    crate::shell::SHELL.lock().init();
     desktop::render_desktop_frame();
 
     let tsc_boot_end = unsafe { core::arch::x86_64::_rdtsc() };
