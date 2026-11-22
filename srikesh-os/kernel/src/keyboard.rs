@@ -195,3 +195,9 @@ pub fn handle_keyboard_interrupt() {
 pub fn pop_key() -> Option<char> {
     KEYBOARD.lock().pop_char()
 }
+
+/// Flush all buffered key events (call after boot to discard spurious scancodes)
+pub fn flush_key_buffer() {
+    let mut kb = KEYBOARD.lock();
+    kb.head = kb.tail;
+}

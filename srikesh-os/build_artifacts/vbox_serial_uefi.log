@@ -8,28 +8,28 @@ TRACE: exiting boot services
 TRACE: switching to new level 4 table
 INFO : New page table at: PhysFrame[4KiB](0x101000)
 INFO : Elf file loaded at Pointer {
-    addr: 0x000000003d015000,
-    metadata: 3779336,
+    addr: 0x000000003d014000,
+    metadata: 3784312,
 }
 INFO : virtual_address_offset: 0x8000000000
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e50a4, mem_size: e50a4, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e50b0, virtual_addr: e60b0, physical_addr: e60b0, file_size: 3106f, mem_size: 3106f, align: 1000 })
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 116120, virtual_addr: 118120, physical_addr: 118120, file_size: 2070, mem_size: 2ee0, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(4), offset: 0, virtual_addr: 0, physical_addr: 0, file_size: e51d4, mem_size: e51d4, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(5), offset: e51e0, virtual_addr: e61e0, physical_addr: e61e0, file_size: 31dcf, mem_size: 31dcf, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 116fb0, virtual_addr: 118fb0, physical_addr: 118fb0, file_size: 2070, mem_size: 3050, align: 1000 })
 INFO : Mapping bss section
-INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 118190, virtual_addr: 11b190, physical_addr: 11b190, file_size: 262998, mem_size: 1291b50, align: 1000 })
+INFO : Handling Segment: Ph64(ProgramHeader64 { type_: Ok(Load), flags: Flags(6), offset: 119020, virtual_addr: 11c020, physical_addr: 11c020, file_size: 2629a0, mem_size: 1291d28, align: 1000 })
 INFO : Mapping bss section
-INFO : Entry point at: 0x800010d7d0
-INFO : Creating GDT at PhysAddr(0x116f000)
+INFO : Entry point at: 0x80001120f0
+INFO : Creating GDT at PhysAddr(0x1171000)
 INFO : Map framebuffer
 INFO : Map physical memory
 INFO : Allocate bootinfo
 INFO : Create Memory Map
 INFO : Create bootinfo
-INFO : Jumping to kernel entry point at VirtAddr(0x800010d7d0)
+INFO : Jumping to kernel entry point at VirtAddr(0x80001120f0)
 [INFO] SRIKESH OS kernel started
 [MEMORY] Usable RAM: 984 MB
 [MEMORY] Usable regions: 98
-[MEMORY] Kernel size: 3690 KB
+[MEMORY] Kernel size: 3695 KB
 [CPU] Active CS selector: 8
 [CPU] Manufacturer: GenuineIntel
 [CPU] Family/Model information detected
@@ -189,36 +189,30 @@ INFO : Jumping to kernel entry point at VirtAddr(0x800010d7d0)
   Hardware Target: Dell Vostro 3520 (x86-64 Architecture)
   Type 'help' for commands, or click any dock icon below
 ==============================================================
+[KEYBOARD] Boot-time key buffer flushed
 
 --- [SRIKESH OS HARDWARE BOOT-TIME TELEMETRY] ---
-  [TSC] Cycles from Kernel Entry to Desktop: 25377232496 cycles
+  [TSC] Cycles from Kernel Entry to Desktop: 26696414022 cycles
   [PIT] Hardware Timer Tick Frequency     : 100 Hz (10 ms per tick)
-  [TSC] Approx Duration at nominal 3.0 GHz : 8459 ms
+  [TSC] Approx Duration at nominal 3.0 GHz : 8898 ms
 ---------------------------------------------------
 
 [INFO] Initializing interrupt-driven task contexts
 [INFO] Both interrupt task contexts initialized
 [DEBUG] TASK 1 FRAME WORDS:
-[DEBUG] FRAME[0x000000000000000F] = 0x000000800010AD80
+[DEBUG] FRAME[0x000000000000000F] = 0x000000800010EF70
 [DEBUG] FRAME[0x0000000000000010] = 0x0000000000000008
 [DEBUG] FRAME[0x0000000000000011] = 0x0000000000000202
-[DEBUG] FRAME[0x0000000000000012] = 0x000000800022D5F8
+[DEBUG] FRAME[0x0000000000000012] = 0x000000800034E698
 [DEBUG] FRAME[0x0000000000000013] = 0x0000000000000010
 [DEBUG] CURRENT CS = 0x0000000000000008
-[DEBUG] TASK 1 initial frame: 0x000000800022D558
-[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800022D5F8
-[DEBUG] TASK 2 initial frame: 0x000000800024D588
-[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800024D628
+[DEBUG] TASK 1 initial frame: 0x000000800034E5F8
+[DEBUG] TASK 1 expected post-IRET RSP: 0x000000800034E698
+[DEBUG] TASK 2 initial frame: 0x000000800036E628
+[DEBUG] TASK 2 expected post-IRET RSP: 0x000000800036E6C8
 [INFO] Initial task dispatched
 [INFO] Starting timer-driven Round Robin scheduler
 
 [PREEMPT] TASK 1 STARTED
 
 [PREEMPT] TASK 2 STARTED
-
-[PERFORMANCE] Scheduler runtime snapshot
-[PERFORMANCE] Context switches: 28
-[PERFORMANCE] Task 1 dispatches: 16
-[PERFORMANCE] Task 2 dispatches: 15
-[PERFORMANCE] Scheduler quantum: 5 ticks
-[PREEMPT] TASK 1 RUNNING

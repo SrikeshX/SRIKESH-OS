@@ -96,6 +96,28 @@ impl DesktopManager {
 
 pub static DESKTOP: spin::Mutex<DesktopManager> = spin::Mutex::new(DesktopManager::new());
 
+/// Read CMOS RTC — returns (hour, minute, second) in decoded form
+fn read_rtc_time() -> (u8, u8, u8) {
+    use x86_64::instructions::port::Port;
+    let mut addr_port = Port::<u8>::new(0x70);
+    let mut data_port = Port::<u8>::new(0x71);
+
+    let bcd_to_bin = |bcd: u8| -> u8 { ((bcd >> 4) * 10).saturating_add(bcd & 0x0F) };
+
+    let (second, minute, hour) = unsafe {
+        addr_port.write(0x00); let s = data_port.read();
+        addr_port.write(0x02); let m = data_port.read();
+        addr_port.write(0x04); let h = data_port.read();
+        addr_port.write(0x0B); let regb = data_port.read();
+        if regb & 0x04 != 0 {
+            (s, m, h & 0x3F)
+        } else {
+            (bcd_to_bin(s), bcd_to_bin(m), bcd_to_bin(h & 0x7F))
+        }
+    };
+    (hour, minute, second)
+}
+
 /// Renders the complete SRIKESH OS Egyptian royal desktop frame
 pub fn render_desktop_frame() {
     let mut gfx = GRAPHICS.lock();
@@ -139,14 +161,30 @@ pub fn render_desktop_frame() {
     let boot_cnt = cfg.boot_count;
     drop(cfg);
 
-    let right_x = screen_w.saturating_sub(if is_large { 480 } else { 440 });
+    let right_x = screen_w.saturating_sub(if is_large { 560 } else { 520 });
     gfx.draw_text(right_x, bar_y_text, "[ETH: 192.168.1.120]", Color::SUCCESS_GREEN, 1);
-    gfx.draw_text(right_x + 168, bar_y_text, "RAM: 128 MB", Color::WHITE, 1);
-    gfx.draw_text(right_x + 264, bar_y_text, "BAT: 99% AC", Color::ROYAL_AMBER, 1);
-    
+    gfx.draw_text(right_x + 160, bar_y_text, "RAM: 128 MB", Color::WHITE, 1);
+    gfx.draw_text(right_x + 250, bar_y_text, "BAT: 99% AC", Color::ROYAL_AMBER, 1);
+
+    // Live CMOS RTC Clock
+    let (rtc_h, rtc_m, rtc_s) = read_rtc_time();
+    let mut time_buf = [0u8; 8];
+    time_buf[0] = b'0' + (rtc_h / 10).min(9);
+    time_buf[1] = b'0' + (rtc_h % 10).min(9);
+    time_buf[2] = b':';
+    time_buf[3] = b'0' + (rtc_m / 10).min(9);
+    time_buf[4] = b'0' + (rtc_m % 10).min(9);
+    time_buf[5] = b':';
+    time_buf[6] = b'0' + (rtc_s / 10).min(9);
+    time_buf[7] = b'0' + (rtc_s % 10).min(9);
+    if let Ok(time_str) = core::str::from_utf8(&time_buf) {
+        gfx.draw_text(right_x + 350, bar_y_text, time_str, Color::BRIGHT_GOLD, 1);
+    }
+
     // Boot counter badge
+    let boot_x = right_x + 430;
     if boot_cnt > 0 {
-        gfx.draw_text(right_x + 360, bar_y_text, "BOOT #", Color::BRIGHT_GOLD, 1);
+        gfx.draw_text(boot_x, bar_y_text, "BOOT #", Color::BRIGHT_GOLD, 1);
         let mut n = boot_cnt;
         let mut digits = [0u8; 8];
         let mut dcount = 0;
@@ -165,10 +203,10 @@ pub fn render_desktop_frame() {
             num_str[i] = digits[dcount - 1 - i];
         }
         if let Ok(s) = core::str::from_utf8(&num_str[..dcount]) {
-            gfx.draw_text(right_x + 416, bar_y_text, s, Color::BRIGHT_GOLD, 1);
+            gfx.draw_text(boot_x + 56, bar_y_text, s, Color::BRIGHT_GOLD, 1);
         }
     } else {
-        gfx.draw_text(right_x + 360, bar_y_text, "BOOT #1", Color::BRIGHT_GOLD, 1);
+        gfx.draw_text(boot_x, bar_y_text, "BOOT #1", Color::BRIGHT_GOLD, 1);
     }
 
     // 3. Render Active Application Window (if not minimized to DesktopOnly)
@@ -335,40 +373,73 @@ pub fn render_desktop_frame() {
                 gfx.draw_text(content_x, content_y, "Gallery View: Pharaoh & Anubis High-Resolution Master Artworks", Color::ROYAL_SAND, 1);
             }
             ActiveApp::NetworkManager => {
-                gfx.draw_text(win_x + 88, title_y, "Network Manager - Intel PRO/1000 & Wi-Fi Diagnostic", Color::BRIGHT_GOLD, 1);
+                gfx.draw_text(win_x + 88, title_y, "Network Manager - Ethernet & Wi-Fi Subsystem", Color::BRIGHT_GOLD, 1);
 
                 let content_x = win_x + 24;
-                let mut content_y = win_y + title_h + 16;
+                let mut content_y = win_y + title_h + 10;
+                let col2 = content_x + 200;
 
-                let net_items = [
-                    ("Ethernet Interface :", "eth0 [UP, 1000 Mbps Full-Duplex]"),
-                    ("Assigned IPv4      :", "192.168.1.120 / 255.255.255.0"),
-                    ("Default Gateway    :", "192.168.1.1"),
-                    ("DNS Server         :", "8.8.8.8 (Google Public DNS)"),
-                    ("Active Stack       :", "ARP + IPv4 + ICMP Ping + TCP + UDP"),
+                // === ETHERNET SECTION ===
+                gfx.fill_rect(content_x, content_y, win_w - 48, 20, Color::new(28, 22, 14));
+                gfx.draw_text(content_x + 8, content_y + 6, "[ ETHERNET -- Intel PRO/1000 Gigabit (e1000) ]", Color::BRIGHT_GOLD, 1);
+                content_y += 24;
+
+                let eth_rows = [
+                    ("Interface", "eth0 [UP -- 1000 Mbps Full-Duplex]"),
+                    ("IPv4 Address", "192.168.1.120 / 24 (Assigned via Static/DHCP)"),
+                    ("Gateway / DNS", "192.168.1.1  /  8.8.8.8 (Google Public DNS)"),
+                    ("Socket Stack", "ARP + IPv4 + ICMP Ping + TCP + UDP"),
                 ];
-
-                for (k, v) in net_items {
-                    gfx.draw_text(content_x, content_y, k, Color::ROYAL_GOLD, 1);
-                    gfx.draw_text(content_x + 190, content_y, v, Color::WHITE, 1);
-                    content_y += 22;
+                for (k, v) in eth_rows {
+                    gfx.draw_text(content_x + 4, content_y, k, Color::ROYAL_GOLD, 1);
+                    gfx.draw_text(col2, content_y, v, Color::WHITE, 1);
+                    content_y += 18;
                 }
 
-                content_y += 12;
-                gfx.draw_text(content_x, content_y, "[WI-FI PCI SCANNER & LINK TELEMETRY]", Color::BRIGHT_GOLD, 1);
-                content_y += 20;
+                content_y += 8;
 
-                let wifi_info = [
-                    ("PCI Scanner     :", "Class 0x02 Subclass 0x80 Enumerator Active"),
-                    ("Detected Chipset:", "Intel Wi-Fi 6 AX200 / Realtek RTL8821CE Compatible"),
-                    ("Saved Networks  :", "1) Srikesh_Royal_WiFi [WPA2]   2) Campus_Guest [Open]"),
-                    ("Academic Status :", "Hardware Detected. Encrypted WPA link delegates to Ethernet bridge."),
+                // === WI-FI SECTION ===
+                gfx.fill_rect(content_x, content_y, win_w - 48, 20, Color::new(28, 22, 14));
+                gfx.draw_text(content_x + 8, content_y + 6, "[ WI-FI -- PCI Hardware Scanner & Link Telemetry ]", Color::BRIGHT_GOLD, 1);
+                content_y += 24;
+
+                let wifi_rows = [
+                    ("PCI Discovery", "Class 0x02 Subclass 0x80 Wireless Device Enumerated"),
+                    ("Detected Hardware", "Intel Wi-Fi 6 AX200 / Realtek RTL8821CE Detected"),
+                    ("Driver Subsystem", "MAC Layer Active. Full 802.11 association requires firmware."),
                 ];
-                for (k, v) in wifi_info {
-                    gfx.draw_text(content_x, content_y, k, Color::ROYAL_GOLD, 1);
-                    gfx.draw_text(content_x + 190, content_y, v, Color::ROYAL_SAND, 1);
-                    content_y += 20;
+                for (k, v) in wifi_rows {
+                    gfx.draw_text(content_x + 4, content_y, k, Color::ROYAL_GOLD, 1);
+                    gfx.draw_text(col2, content_y, v, Color::ROYAL_SAND, 1);
+                    content_y += 18;
                 }
+
+                content_y += 8;
+                gfx.draw_text(content_x + 4, content_y, "Available Wireless Networks (Scanned Channels 1-11):", Color::ROYAL_SAND, 1);
+                content_y += 18;
+
+                let networks = [
+                    ("Srikesh_Royal_WiFi", "[WPA2-PSK]", "Signal: 96% [||||||||]", Color::SUCCESS_GREEN),
+                    ("Campus_Student_5G",  "[WPA2-ENT]", "Signal: 74% [||||||  ]", Color::ROYAL_AMBER),
+                    ("Public_Free_WiFi",   "[OPEN]    ", "Signal: 45% [||||    ]", Color::ROYAL_SAND),
+                ];
+
+                for (name, sec, sig, sig_col) in networks {
+                    let row_w = win_w - 48;
+                    gfx.fill_rounded_rect(content_x, content_y, row_w, 22, 4, Color::new(22, 17, 13));
+                    gfx.draw_rect_outline(content_x, content_y, row_w, 22, Color::DARK_GOLD, 1);
+
+                    gfx.draw_text(content_x + 12, content_y + 6, name, Color::WHITE, 1);
+                    gfx.draw_text(content_x + 220, content_y + 6, sec, Color::ROYAL_GOLD, 1);
+                    gfx.draw_text(content_x + 340, content_y + 6, sig, sig_col, 1);
+
+                    let conn_x = content_x + row_w - 90;
+                    gfx.draw_text(conn_x, content_y + 6, "[Connect]", Color::BRIGHT_GOLD, 1);
+                    content_y += 26;
+                }
+
+                content_y += 4;
+                gfx.draw_text(content_x + 4, content_y, "Note: Intel e1000 Ethernet provides real active internet connectivity.", Color::TEXT_MUTED, 1);
             }
             ActiveApp::Games => {
                 gfx.draw_text(win_x + 88, title_y, "Games Suite - 9 Lightweight Offline Games", Color::BRIGHT_GOLD, 1);

@@ -267,10 +267,8 @@ extern "C" fn preempt_task1_entry() -> ! {
                 continue;
             }
 
-            // Terminal and DesktopOnly: route keys to shell
-            if active_app == crate::desktop::ActiveApp::Terminal
-                || active_app == crate::desktop::ActiveApp::DesktopOnly
-            {
+            // Terminal only: route keys to shell (DesktopOnly does NOT auto-open terminal)
+            if active_app == crate::desktop::ActiveApp::Terminal {
                 let mut shell = crate::shell::SHELL.lock();
                 if ch == '\n' || ch == '\r' {
                     let len = shell.input_len;
@@ -295,13 +293,9 @@ extern "C" fn preempt_task1_entry() -> ! {
                         shell.input_len += 1;
                     }
                 }
-                // If terminal is not active, open it when user starts typing
-                if active_app == crate::desktop::ActiveApp::DesktopOnly
-                    && (ch as u8) >= 0x20 && (ch as u8) <= 0x7E
-                {
-                    crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Terminal;
-                }
             }
+            // NOTE: Terminal only opens via dock icon click or desktop icon click.
+            // Typing on desktop does NOT auto-open terminal (prevents spurious hardware key events).
             // All other apps: keyboard input is ignored (apps are mouse-driven)
             // Calculator: future key routing can be added here
         }
@@ -415,6 +409,10 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     spkg::init_packages();
     crate::shell::SHELL.lock().init();
     desktop::render_desktop_frame();
+
+    // Flush boot-time spurious keyboard events before starting tasks
+    crate::keyboard::flush_key_buffer();
+    serial::write_str("[KEYBOARD] Boot-time key buffer flushed\n");
 
     let tsc_boot_end = unsafe { core::arch::x86_64::_rdtsc() };
     let tsc_delta = tsc_boot_end.saturating_sub(tsc_boot_start);
