@@ -17,7 +17,7 @@
 [![Hardware](https://img.shields.io/badge/Bare--Metal-Dell%20Vostro%203520-38BDF8?style=for-the-badge&logo=dell&logoColor=white)](#real-hardware-verification)
 [![Size](https://img.shields.io/badge/Microkernel-5.1%20MB%20UEFI-8B5CF6?style=for-the-badge)](#measured-footprint)
 
-<a href="https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main"><img src="https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20%E2%80%A2%20764%20MB-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Download SRIKESH OS ISO from Hugging Face" /></a>
+<a href="https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main"><img src="https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20%E2%80%A2%20757%20MB-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Download SRIKESH OS ISO from Hugging Face" /></a>
 
 <br /><br />
 
@@ -204,7 +204,7 @@ The verified **Universal v3 Hybrid Bootable ISO** (UEFI Secure Boot + Legacy BIO
 
 | Release Asset | Size | Download | SHA-256 Checksum |
 | :--- | :---: | :---: | :--- |
-| **`srikesh-os-hybrid-universal.iso`** | **764 MiB** *(801 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso?download=true)** | `b4adf19f1f70b4160b420551beff672c1dfde23f36b05b63dbe3c0ba13af8388` |
+| **`srikesh-os-hybrid-universal.iso`** | **757 MiB** *(794 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso?download=true)** | `53ef4834d791e3c84494fe9938d4bf02530e2f030bc90ec56761354a301cdd80` |
 | **`srikesh-os-hybrid-universal.iso.sha256`** | **98 Bytes** | **[🔐 Download SHA-256 File](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso.sha256?download=true)** | Verification checksum |
 
 - **Hugging Face Files & Releases:** https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main
