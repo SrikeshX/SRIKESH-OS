@@ -34,6 +34,7 @@ pub const DESKTOP_WALLPAPER_HEIGHT: usize = 288;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActiveApp {
     DesktopOnly,
+    AppLauncher,
     Browser,
     Terminal,
     FileManager,
@@ -96,26 +97,30 @@ impl DesktopManager {
 
 pub static DESKTOP: spin::Mutex<DesktopManager> = spin::Mutex::new(DesktopManager::new());
 
-/// Read CMOS RTC — returns (hour, minute, second) in decoded form
-fn read_rtc_time() -> (u8, u8, u8) {
+/// Read CMOS RTC — returns (hour, minute, second, day, month, year2digit)
+fn read_rtc_time() -> (u8, u8, u8, u8, u8, u8) {
     use x86_64::instructions::port::Port;
     let mut addr_port = Port::<u8>::new(0x70);
     let mut data_port = Port::<u8>::new(0x71);
 
     let bcd_to_bin = |bcd: u8| -> u8 { ((bcd >> 4) * 10).saturating_add(bcd & 0x0F) };
 
-    let (second, minute, hour) = unsafe {
+    let (second, minute, hour, day, month, year) = unsafe {
         addr_port.write(0x00); let s = data_port.read();
         addr_port.write(0x02); let m = data_port.read();
         addr_port.write(0x04); let h = data_port.read();
+        addr_port.write(0x07); let d = data_port.read();
+        addr_port.write(0x08); let mo = data_port.read();
+        addr_port.write(0x09); let y = data_port.read();
         addr_port.write(0x0B); let regb = data_port.read();
         if regb & 0x04 != 0 {
-            (s, m, h & 0x3F)
+            (s, m, h & 0x3F, d, mo, y)
         } else {
-            (bcd_to_bin(s), bcd_to_bin(m), bcd_to_bin(h & 0x7F))
+            (bcd_to_bin(s), bcd_to_bin(m), bcd_to_bin(h & 0x7F),
+             bcd_to_bin(d), bcd_to_bin(mo), bcd_to_bin(y))
         }
     };
-    (hour, minute, second)
+    (hour, minute, second, day, month, year)
 }
 
 /// Renders the complete SRIKESH OS Egyptian royal desktop frame
@@ -128,6 +133,9 @@ pub fn render_desktop_frame() {
     let screen_w = gfx.width;
     let screen_h = gfx.height;
     let is_large = screen_w >= 1400;
+
+    // Read mouse state once at the top — used throughout the frame
+    let mouse_now = get_mouse_state();
 
     // 1. Render Supplied Reference Image 1 as Fullscreen Desktop Wallpaper (Jackal on Throne)
     gfx.draw_image_rgb(
@@ -161,13 +169,15 @@ pub fn render_desktop_frame() {
     let boot_cnt = cfg.boot_count;
     drop(cfg);
 
-    let right_x = screen_w.saturating_sub(if is_large { 560 } else { 520 });
+    let right_x = screen_w.saturating_sub(if is_large { 660 } else { 620 });
     gfx.draw_text(right_x, bar_y_text, "[ETH: 192.168.1.120]", Color::SUCCESS_GREEN, 1);
     gfx.draw_text(right_x + 160, bar_y_text, "RAM: 128 MB", Color::WHITE, 1);
     gfx.draw_text(right_x + 250, bar_y_text, "BAT: 99% AC", Color::ROYAL_AMBER, 1);
 
-    // Live CMOS RTC Clock
-    let (rtc_h, rtc_m, rtc_s) = read_rtc_time();
+    // Live CMOS RTC Clock + Date
+    let (rtc_h, rtc_m, rtc_s, rtc_d, rtc_mo, rtc_y) = read_rtc_time();
+
+    // Format: HH:MM:SS
     let mut time_buf = [0u8; 8];
     time_buf[0] = b'0' + (rtc_h / 10).min(9);
     time_buf[1] = b'0' + (rtc_h % 10).min(9);
@@ -177,12 +187,28 @@ pub fn render_desktop_frame() {
     time_buf[5] = b':';
     time_buf[6] = b'0' + (rtc_s / 10).min(9);
     time_buf[7] = b'0' + (rtc_s % 10).min(9);
+
+    // Format: DD-MM-20YY
+    let mut date_buf = [0u8; 10];
+    date_buf[0] = b'0' + (rtc_d / 10).min(9);
+    date_buf[1] = b'0' + (rtc_d % 10).min(9);
+    date_buf[2] = b'-';
+    date_buf[3] = b'0' + (rtc_mo / 10).min(9);
+    date_buf[4] = b'0' + (rtc_mo % 10).min(9);
+    date_buf[5] = b'-';
+    date_buf[6] = b'2'; date_buf[7] = b'0';
+    date_buf[8] = b'0' + (rtc_y / 10).min(9);
+    date_buf[9] = b'0' + (rtc_y % 10).min(9);
+
     if let Ok(time_str) = core::str::from_utf8(&time_buf) {
         gfx.draw_text(right_x + 350, bar_y_text, time_str, Color::BRIGHT_GOLD, 1);
     }
+    if let Ok(date_str) = core::str::from_utf8(&date_buf) {
+        gfx.draw_text(right_x + 430, bar_y_text, date_str, Color::ROYAL_SAND, 1);
+    }
 
-    // Boot counter badge
-    let boot_x = right_x + 430;
+    // Boot counter badge (moved right of date)
+    let boot_x = right_x + 530;
     if boot_cnt > 0 {
         gfx.draw_text(boot_x, bar_y_text, "BOOT #", Color::BRIGHT_GOLD, 1);
         let mut n = boot_cnt;
@@ -211,6 +237,86 @@ pub fn render_desktop_frame() {
 
     // 3. Render Active Application Window (if not minimized to DesktopOnly)
     let app = DESKTOP.lock().active_app;
+
+    // App Launcher is a special full-screen overlay — render separately
+    if app == ActiveApp::AppLauncher {
+        // Semi-transparent dark overlay
+        gfx.fill_rect(0, bar_h, screen_w, screen_h - bar_h, Color::with_alpha(8, 6, 4, 220));
+        gfx.draw_rect_outline(0, bar_h, screen_w, screen_h - bar_h, Color::ROYAL_GOLD, 1);
+
+        // Launcher title
+        let launch_title = "< S > App Launcher — SRIKESH OS";
+        gfx.draw_text_centered(bar_h + 14, launch_title, Color::BRIGHT_GOLD, 1);
+        gfx.fill_rect(0, bar_h + 28, screen_w, 1, Color::DARK_GOLD);
+
+        // Grid of app icons
+        let apps: &[(&str, &str, ActiveApp)] = &[
+            // Row 1: Productivity
+            ("[TXT]", "Editor",    ActiveApp::TextEditor),
+            ("[CLI]", "Terminal",  ActiveApp::Terminal),
+            ("[WWW]", "Browser",   ActiveApp::Browser),
+            ("[DIR]", "Files",     ActiveApp::FileManager),
+            ("[CAL]", "Calc",      ActiveApp::Calculator),
+            // Row 2: System & Network
+            ("[NET]", "Network",   ActiveApp::NetworkManager),
+            ("[MON]", "Monitor",   ActiveApp::SystemMonitor),
+            ("[SET]", "Settings",  ActiveApp::Settings),
+            ("[PKG]", "S-Pkg",     ActiveApp::SoftwareStore),
+            ("[NFO]", "About",     ActiveApp::About),
+            // Row 3: Games
+            ("[CHE]", "Chess",     ActiveApp::Games),
+            ("[SNK]", "Snake",     ActiveApp::Games),
+            ("[SDK]", "Sudoku",    ActiveApp::Games),
+            ("[TTR]", "Tetris",    ActiveApp::Games),
+            ("[MSW]", "Mines",     ActiveApp::Games),
+        ];
+
+        let cell_w: usize = if is_large { 120 } else { 96 };
+        let cell_h: usize = if is_large { 80 } else { 68 };
+        let cols: usize = 5;
+        let grid_w = cols * cell_w + (cols - 1) * 12;
+        let grid_x = screen_w.saturating_sub(grid_w) / 2;
+        let grid_y = bar_h + 36;
+
+        for (idx, &(icon, name, _target)) in apps.iter().enumerate() {
+            let col = idx % cols;
+            let row = idx / cols;
+            let cx = grid_x + col * (cell_w + 12);
+            let cy = grid_y + row * (cell_h + 10);
+
+            let hovered = mouse_now.x >= cx && mouse_now.x <= cx + cell_w
+                && mouse_now.y >= cy && mouse_now.y <= cy + cell_h;
+
+            let bg = if hovered { Color::new(60, 48, 20) } else { Color::new(22, 17, 12) };
+            let border = if hovered { Color::BRIGHT_GOLD } else { Color::ROYAL_GOLD };
+
+            gfx.fill_rounded_rect(cx, cy, cell_w, cell_h, 6, bg);
+            gfx.draw_rect_outline(cx, cy, cell_w, cell_h, border, 1);
+
+            // Icon text (centered)
+            let iw = icon.chars().count() * 8;
+            gfx.draw_text(cx + cell_w.saturating_sub(iw) / 2, cy + 16, icon, Color::ROYAL_GOLD, 1);
+
+            // App name
+            let nw = name.chars().count() * 8;
+            gfx.draw_text(cx + cell_w.saturating_sub(nw) / 2, cy + 34, name, Color::WHITE, 1);
+        }
+
+        // Category labels on left
+        let cat_x = grid_x.saturating_sub(80);
+        gfx.draw_text(cat_x, grid_y + 28, "Prod.", Color::ROYAL_SAND, 1);
+        gfx.draw_text(cat_x, grid_y + cell_h + 10 + 28, "Sys.", Color::ROYAL_SAND, 1);
+        gfx.draw_text(cat_x, grid_y + 2 * (cell_h + 10) + 28, "Games", Color::ROYAL_SAND, 1);
+
+        // Close hint
+        let close_hint = "ESC or F12 to close launcher";
+        gfx.draw_text_centered(screen_h - 60, close_hint, Color::TEXT_MUTED, 1);
+
+        // Draw cursor on top
+        gfx.draw_cursor(mouse_now.x, mouse_now.y);
+        gfx.swap_buffers();
+        return; // skip regular window rendering
+    }
 
     if app != ActiveApp::DesktopOnly {
         // Window dimensions (Centered)
@@ -241,6 +347,7 @@ pub fn render_desktop_frame() {
 
         match app {
             ActiveApp::DesktopOnly => {}
+            ActiveApp::AppLauncher => {} // handled above via early return
             ActiveApp::Browser => {
                 gfx.draw_text(win_x + 88, title_y, "Web Browser - S-Web MicroText (Intel e1000 Gigabit Stack)", Color::BRIGHT_GOLD, 1);
                 BROWSER.lock().render(&mut gfx, win_x, win_y, win_w, win_h);
@@ -571,34 +678,45 @@ pub fn render_desktop_frame() {
         let icon_h: usize = if is_large { 72 } else { 60 };
         let icon_gap: usize = if is_large { 18 } else { 12 };
 
-        // (line1, line2) for each desktop icon
-        let desktop_icons: &[(&str, &str)] = &[
-            ("[F]", "Files"),
-            ("[T]", "Term"),
-            ("[B]", "Browse"),
-            ("[S]", "Settings"),
-            ("[M]", "Monitor"),
+        // (label_key, label_name) for each desktop icon — F1-F5 shortcuts
+        let desktop_icons: &[(&str, &str, &str)] = &[
+            ("F1", "Files", "[FILES]"),
+            ("F2", "Term",  "[TERM ]"),
+            ("F3", "Web",   "[BROWS]"),
+            ("F4", "Set",   "[SETT ]"),
+            ("F5", "Mon",   "[MON  ]"),
         ];
 
-        for (col, &(line1, line2)) in desktop_icons.iter().enumerate() {
+        for (col, &(fkey, label, icon)) in desktop_icons.iter().enumerate() {
             let ix = icon_start_x + col * (icon_w + icon_gap);
             let iy = icon_start_y;
 
-            // Icon background glass tile
-            gfx.fill_rounded_rect(ix, iy, icon_w, icon_h, 8, Color::new(18, 14, 10));
-            gfx.draw_rect_outline(ix, iy, icon_w, icon_h, Color::DARK_GOLD, 1);
+            // Check hover
+            let hovered = mouse_now.x >= ix && mouse_now.x <= ix + icon_w
+                && mouse_now.y >= iy && mouse_now.y <= iy + icon_h;
+            let bg = if hovered { Color::new(50, 40, 20) } else { Color::new(18, 14, 10) };
+            let border = if hovered { Color::BRIGHT_GOLD } else { Color::DARK_GOLD };
 
-            let l1w = line1.chars().count() * 8;
-            let l2w = line2.chars().count() * 8;
-            let lx1 = ix + icon_w.saturating_sub(l1w) / 2;
-            let lx2 = ix + icon_w.saturating_sub(l2w) / 2;
-            gfx.draw_text(lx1, iy + 14, line1, Color::BRIGHT_GOLD, 1);
-            gfx.draw_text(lx2, iy + 30, line2, Color::WHITE, 1);
+            // Icon background glass tile
+            gfx.fill_rounded_rect(ix, iy, icon_w, icon_h, 8, bg);
+            gfx.draw_rect_outline(ix, iy, icon_w, icon_h, border, 1);
+
+            // Icon art (ASCII block)
+            let iw = icon.chars().count() * 8;
+            gfx.draw_text(ix + icon_w.saturating_sub(iw) / 2, iy + 10, icon, Color::ROYAL_GOLD, 1);
+
+            // Key shortcut label
+            let kw = fkey.chars().count() * 8;
+            gfx.draw_text(ix + icon_w.saturating_sub(kw) / 2, iy + 28, fkey, Color::BRIGHT_GOLD, 1);
+
+            // App name
+            let lw = label.chars().count() * 8;
+            gfx.draw_text(ix + icon_w.saturating_sub(lw) / 2, iy + 42, label, Color::WHITE, 1);
         }
 
         // Desktop hint bar
         let hint_y = bar_h + if is_large { 20 } else { 14 };
-        let hint_text = "Click a dock icon  |  Press F1-F6 for apps  |  ESC to close window";
+        let hint_text = "F1 Files | F2 Terminal | F3 Browser | F4 Settings | F5 Monitor | F11 App Launcher | ESC Close";
         let hint_x = screen_w.saturating_sub(hint_text.chars().count() * 8) / 2;
         gfx.draw_text(hint_x, hint_y, hint_text, Color::new(100, 85, 60), 1);
     }
@@ -614,19 +732,19 @@ pub fn render_desktop_frame() {
     gfx.draw_rect_outline(dock_x, dock_y, dock_w, dock_h, Color::ROYAL_GOLD, 2);
     gfx.draw_rect_outline(dock_x + 2, dock_y + 2, dock_w - 4, dock_h - 4, Color::DARK_GOLD, 1);
 
-    // Dock Icons: Browser, Terminal, Files, Editor, Calc, Net, Games, Monitor, Settings, Store, About
+    // Dock Icons: Apps launcher first, then all core apps
     let icons = [
-        ("[B] Web", ActiveApp::Browser),
-        ("[T] Term", ActiveApp::Terminal),
-        ("[F] File", ActiveApp::FileManager),
-        ("[E] Edit", ActiveApp::TextEditor),
-        ("[C] Calc", ActiveApp::Calculator),
-        ("[N] Net", ActiveApp::NetworkManager),
-        ("[G] Game", ActiveApp::Games),
-        ("[M] Mon", ActiveApp::SystemMonitor),
-        ("[S] Set", ActiveApp::Settings),
-        ("[P] Pkg", ActiveApp::SoftwareStore),
-        ("[A] Info", ActiveApp::About),
+        ("[*] Apps",  ActiveApp::AppLauncher),
+        ("[B] Web",   ActiveApp::Browser),
+        ("[T] Term",  ActiveApp::Terminal),
+        ("[F] File",  ActiveApp::FileManager),
+        ("[E] Edit",  ActiveApp::TextEditor),
+        ("[C] Calc",  ActiveApp::Calculator),
+        ("[N] Net",   ActiveApp::NetworkManager),
+        ("[G] Game",  ActiveApp::Games),
+        ("[M] Mon",   ActiveApp::SystemMonitor),
+        ("[S] Set",   ActiveApp::Settings),
+        ("[A] Info",  ActiveApp::About),
     ];
 
     let btn_w = (dock_w - 24) / icons.len();
@@ -635,7 +753,6 @@ pub fn render_desktop_frame() {
     let text_pad_y = (btn_h.saturating_sub(8)) / 2;
 
     // Check mouse hover for dock highlight
-    let mouse_now = get_mouse_state();
     let mouse_on_dock = mouse_now.y >= dock_y && mouse_now.y <= dock_y + dock_h;
 
     for (idx, &(label, target_app)) in icons.iter().enumerate() {
@@ -705,6 +822,48 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
 
     let cur_app = DESKTOP.lock().active_app;
 
+    // 0. App Launcher grid clicks — handle before window controls
+    if cur_app == ActiveApp::AppLauncher {
+        let cell_w: usize = if is_large { 120 } else { 96 };
+        let cell_h: usize = if is_large { 80 } else { 68 };
+        let cols: usize = 5;
+        let grid_w = cols * cell_w + (cols - 1) * 12;
+        let grid_x = screen_w.saturating_sub(grid_w) / 2;
+        let grid_y = bar_h + 36;
+
+        let apps: &[(&str, ActiveApp)] = &[
+            ("Editor",    ActiveApp::TextEditor),
+            ("Terminal",  ActiveApp::Terminal),
+            ("Browser",   ActiveApp::Browser),
+            ("Files",     ActiveApp::FileManager),
+            ("Calc",      ActiveApp::Calculator),
+            ("Network",   ActiveApp::NetworkManager),
+            ("Monitor",   ActiveApp::SystemMonitor),
+            ("Settings",  ActiveApp::Settings),
+            ("S-Pkg",     ActiveApp::SoftwareStore),
+            ("About",     ActiveApp::About),
+            ("Chess",     ActiveApp::Games),
+            ("Snake",     ActiveApp::Games),
+            ("Sudoku",    ActiveApp::Games),
+            ("Tetris",    ActiveApp::Games),
+            ("Mines",     ActiveApp::Games),
+        ];
+
+        for (idx, &(_name, target)) in apps.iter().enumerate() {
+            let col = idx % cols;
+            let row = idx / cols;
+            let cx = grid_x + col * (cell_w + 12);
+            let cy = grid_y + row * (cell_h + 10);
+            if mouse_x >= cx && mouse_x <= cx + cell_w && mouse_y >= cy && mouse_y <= cy + cell_h {
+                DESKTOP.lock().active_app = target;
+                return;
+            }
+        }
+        // Click elsewhere closes launcher
+        DESKTOP.lock().active_app = ActiveApp::DesktopOnly;
+        return;
+    }
+
     // 1. Window control buttons (only when a window is open)
     if cur_app != ActiveApp::DesktopOnly {
         let btn_y = win_y + (title_h.saturating_sub(14)) / 2;
@@ -756,6 +915,7 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
     let dock_y = screen_h.saturating_sub(dock_h + if is_large { 16 } else { 12 });
 
     let icons = [
+        ActiveApp::AppLauncher,
         ActiveApp::Browser,
         ActiveApp::Terminal,
         ActiveApp::FileManager,
@@ -765,7 +925,6 @@ pub fn handle_mouse_click(mouse_x: usize, mouse_y: usize) {
         ActiveApp::Games,
         ActiveApp::SystemMonitor,
         ActiveApp::Settings,
-        ActiveApp::SoftwareStore,
         ActiveApp::About,
     ];
 

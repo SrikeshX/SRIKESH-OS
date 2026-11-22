@@ -260,6 +260,13 @@ extern "C" fn preempt_task1_entry() -> ! {
                 continue;
             }
 
+            // Space bar on clean desktop → open App Launcher
+            if ch == ' ' && active_app == crate::desktop::ActiveApp::DesktopOnly {
+                crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::AppLauncher;
+                crate::desktop::render_desktop_frame();
+                continue;
+            }
+
             // Games always receive input when active
             if active_app == crate::desktop::ActiveApp::Games {
                 crate::games::GAMES.lock().handle_key(ch);
@@ -311,16 +318,19 @@ extern "C" fn preempt_task1_entry() -> ! {
 extern "C" fn preempt_task2_entry() -> ! {
     serial::write_str("\n[PREEMPT] TASK 2 STARTED\n");
 
-    let mut progress: u64 = 0;
     let mut last_click = false;
+    let mut last_mouse_x: usize = 9999;
+    let mut last_mouse_y: usize = 9999;
+    let mut right_click_handled = false;
+    let mut render_ticks: u64 = 0;
 
     loop {
-        progress = progress.wrapping_add(1);
-
         let mouse = crate::mouse::get_mouse_state();
+
+        // --- Left click: launch apps ---
         if mouse.left_button && !last_click {
             last_click = true;
-            serial::write_str("[MOUSE EVENT] Left Click detected at (");
+            serial::write_str("[MOUSE] Click at (");
             serial::write_u64(mouse.x as u64);
             serial::write_str(", ");
             serial::write_u64(mouse.y as u64);
@@ -331,11 +341,30 @@ extern "C" fn preempt_task2_entry() -> ! {
             last_click = false;
         }
 
-        if progress % 2_000_000 == 0 {
+        // --- Right click: close active window ---
+        if mouse.right_button && !right_click_handled {
+            right_click_handled = true;
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
+            crate::desktop::render_desktop_frame();
+        } else if !mouse.right_button {
+            right_click_handled = false;
+        }
+
+        // --- Cursor movement: re-render whenever mouse position changes ---
+        let moved = mouse.x != last_mouse_x || mouse.y != last_mouse_y;
+        if moved {
+            last_mouse_x = mouse.x;
+            last_mouse_y = mouse.y;
             crate::desktop::render_desktop_frame();
         }
 
-        if progress % 10_000_000 == 0 {
+        // --- Periodic refresh for clock update (every ~300K iters ~30fps equivalent) ---
+        render_ticks = render_ticks.wrapping_add(1);
+        if render_ticks % 300_000 == 0 {
+            crate::desktop::render_desktop_frame();
+        }
+
+        if render_ticks % 10_000_000 == 0 {
             serial::write_str("[PREEMPT] TASK 2 RUNNING\n");
         }
 

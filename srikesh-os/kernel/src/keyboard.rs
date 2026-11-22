@@ -144,20 +144,20 @@ pub fn handle_keyboard_interrupt() {
         0x3A => {
             kb.caps_lock = !kb.caps_lock;
         }
-        0x3B => { // F1 - Terminal
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Terminal;
-        }
-        0x3C => { // F2 - File Manager
+        0x3B => { // F1 - Files (FileManager)
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::FileManager;
         }
-        0x3D => { // F3 - Software Store
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SoftwareStore;
+        0x3C => { // F2 - Terminal
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Terminal;
         }
-        0x3E => { // F4 - System Monitor
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SystemMonitor;
-        }
-        0x3F => { // F5 - Browser
+        0x3D => { // F3 - Browser
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Browser;
+        }
+        0x3E => { // F4 - Settings
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Settings;
+        }
+        0x3F => { // F5 - System Monitor
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SystemMonitor;
         }
         0x40 => { // F6 - Games
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Games;
@@ -168,13 +168,16 @@ pub fn handle_keyboard_interrupt() {
         0x42 => { // F8 - Network Manager
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::NetworkManager;
         }
-        0x43 => { // F9 - Settings
-            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::Settings;
+        0x43 => { // F9 - Software Store
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::SoftwareStore;
         }
-        0x44 => { // F10 - About/Info
+        0x44 => { // F10 - About
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::About;
         }
-        0x57 => { // F11 - Desktop (minimize all / show desktop)
+        0x57 => { // F11 - App Launcher (grid menu)
+            crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::AppLauncher;
+        }
+        0x58 => { // F12 - Desktop (minimize all / show desktop)
             crate::desktop::DESKTOP.lock().active_app = crate::desktop::ActiveApp::DesktopOnly;
         }
         code if (code as usize) < SCANCODE_LOWER.len() => {
