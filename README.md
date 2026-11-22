@@ -16,14 +16,16 @@
 [![Virtualization](https://img.shields.io/badge/Verified-Oracle%20VirtualBox%207.2-1D4ED8?style=for-the-badge&logo=virtualbox&logoColor=white)](#verification--benchmarks)
 [![Hardware](https://img.shields.io/badge/Bare--Metal-Dell%20Vostro%203520-38BDF8?style=for-the-badge&logo=dell&logoColor=white)](#real-hardware-verification)
 [![Size](https://img.shields.io/badge/Microkernel-5.1%20MB%20UEFI-8B5CF6?style=for-the-badge)](#measured-footprint)
+[![Download ISO](https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20(764%20MB)-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso)
 
 <br />
 
 [Overview](#-overview) •
+[Download ISO](#-download-bootable-iso) •
 [Dual Editions](#-dual-edition-architecture) •
 [Architecture](#-system-architecture) •
 [Benchmarks](#-verification--benchmarks) •
-[Boot Guide](#-universal-live-usb-boot-guide) •
+[Boot Guide](#-build-test--universal-live-usb-boot-guide) •
 [Docs](#-documentation--reports)
 
 </div>
@@ -182,6 +184,7 @@ RUST MICRO-OS KERNEL PROJECT/
     ├── build_hybrid_iso.sh                          # Linux 6.1 LTS + NetworkManager + Chromium builder
     ├── apply_polish_fixes.sh                        # Silent boot & Chromium sandbox hardening
     ├── apply_universal_compat.sh                    # Signed UEFI Secure Boot shim + universal firmware
+    ├── pack_universal_iso.sh                        # Hybrid UEFI (Secure Boot) + Legacy BIOS ISO packer
     ├── shell/                                       # Custom desktop shell, Wi-Fi panel & hardware monitor
     │   ├── srikesh_shell.py                         # Taskbar, Start Menu, Welcome Overlay & Wi-Fi Panel
     │   ├── srikesh_sysmon.py                        # Live hardware, RAM, PCI & firmware telemetry
@@ -189,7 +192,20 @@ RUST MICRO-OS KERNEL PROJECT/
     └── scripts/                                     # Oracle VirtualBox test & safe USB deploy scripts
 ```
 
-> **Note:** Generated multi-hundred-megabyte ISO and SquashFS binary images (`srikesh-os-hybrid/out/`) are intentionally excluded via `.gitignore` to respect GitHub's 100 MB file limit. Every build script required to reproduce them is tracked in `srikesh-os-hybrid/`.
+> **Note:** Generated multi-hundred-megabyte ISO and SquashFS binary images (`srikesh-os-hybrid/out/`) are hosted on [Hugging Face](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases) and excluded from Git via `.gitignore` to respect GitHub's 100 MB file limit. Every build script required to reproduce them is tracked in `srikesh-os-hybrid/`.
+
+---
+
+## ⬇️ Download Bootable ISO
+
+The verified **Universal v3 Hybrid Bootable ISO** (UEFI Secure Boot + Legacy BIOS) is hosted on Hugging Face:
+
+| Release Asset | Size | Download | SHA-256 Checksum |
+| :--- | :---: | :---: | :--- |
+| **`srikesh-os-hybrid-universal.iso`** | **764 MiB** *(801 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso)** | `b4adf19f1f70b4160b420551beff672c1dfde23f36b05b63dbe3c0ba13af8388` |
+
+- **Hugging Face Release Hub:** https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases
+- **Quick Start:** Flash the ISO onto any ≥ 2 GB USB drive using **Rufus**, **BalenaEtcher**, or **Ventoy** — or attach it directly as a virtual DVD in **Oracle VirtualBox** (UEFI enabled) to try SRIKESH OS immediately without touching your internal drive.
 
 ---
 
