@@ -819,7 +819,7 @@ class StartMenu(Gtk.Window):
         self.set_skip_taskbar_hint(True)
         self.set_skip_pager_hint(True)
         self.set_keep_above(True)
-        self.set_default_size(420, 420)
+        self.set_default_size(420, 455)
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.get_style_context().add_class("flyout")
 
@@ -845,6 +845,7 @@ class StartMenu(Gtk.Window):
             ("◉  Browser", lambda: launch_browser("https://www.google.com")),
             ("◎  Google", lambda: launch_browser("https://www.google.com")),
             ("▶  YouTube", lambda: launch_browser("https://www.youtube.com")),
+            ("❖  Snap Store", lambda: launch_app(["python3", "/opt/srikesh/srikesh_store.py"])),
             ("▤  Files", lambda: launch_app(["pcmanfm"])),
             (">_  Terminal", lambda: launch_app(["lxterminal"])),
             ("▂▄▆  Wi-Fi Settings", lambda: self.shell.toggle_wifi_panel()),
@@ -905,7 +906,7 @@ class StartMenu(Gtk.Window):
     def open_menu(self):
         screen = Gdk.Screen.get_default()
         sh = screen.get_height()
-        self.move(12, sh - 476)
+        self.move(12, sh - 510)
         self.search.set_text("")
         self.show_all()
         self.present()
@@ -936,6 +937,7 @@ class DesktopIcons(Gtk.Window):
         items = [
             ("◉\nBrowser", lambda: launch_browser("https://www.google.com")),
             ("▶\nYouTube", lambda: launch_browser("https://www.youtube.com")),
+            ("❖\nSnap Store", lambda: launch_app(["python3", "/opt/srikesh/srikesh_store.py"])),
             ("▤\nFiles", lambda: launch_app(["pcmanfm"])),
             (">_\nTerminal", lambda: launch_app(["lxterminal"])),
             ("▂▄▆\nWi-Fi", lambda: self.shell.toggle_wifi_panel()),
@@ -987,6 +989,7 @@ class SrikeshTaskbar(Gtk.Window):
         pinned = [
             ("◉ Browser", lambda: launch_browser("https://www.google.com")),
             ("▶ YouTube", lambda: launch_browser("https://www.youtube.com")),
+            ("❖ Snap Store", lambda: launch_app(["python3", "/opt/srikesh/srikesh_store.py"])),
             ("▤ Files", lambda: launch_app(["pcmanfm"])),
             (">_ Terminal", lambda: launch_app(["lxterminal"])),
             ("◈ Monitor", lambda: launch_app(["python3", "/opt/srikesh/srikesh_sysmon.py"])),

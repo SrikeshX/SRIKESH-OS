@@ -17,7 +17,7 @@
 [![Hardware](https://img.shields.io/badge/Bare--Metal-Dell%20Vostro%203520-38BDF8?style=for-the-badge&logo=dell&logoColor=white)](#real-hardware-verification)
 [![Size](https://img.shields.io/badge/Microkernel-5.1%20MB%20UEFI-8B5CF6?style=for-the-badge)](#measured-footprint)
 
-<a href="https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main"><img src="https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20%E2%80%A2%20757%20MB-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Download SRIKESH OS ISO from Hugging Face" /></a>
+<a href="https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main"><img src="https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20%E2%80%A2%20491%20MB-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Download SRIKESH OS ISO from Hugging Face" /></a>
 
 <br /><br />
 
@@ -43,9 +43,9 @@ To balance low-level OS engineering with full real-world laptop usability (moder
 | :--- | :--- | :--- |
 | **Core Kernel** | Custom freestanding `#![no_std]` Rust x86-64 kernel | Linux 6.1 LTS + Custom SRIKESH Desktop Shell |
 | **Boot Mode** | Dual UEFI GOP (1024×768 / 1080p) & Legacy BIOS | Microsoft-Signed UEFI Secure Boot (`shimx64` + GRUB) |
-| **Image Size** | **3.78 MB** kernel • **5.1 MB** UEFI • **6.5 MB** BIOS | **~752 MB** total portable Live USB payload |
+| **Image Size** | **3.78 MB** kernel • **5.1 MB** UEFI • **6.5 MB** BIOS | **468 MiB** *(491 MB — ≤ 500 MB)* XZ-compressed ISO |
 | **Scheduling & Memory** | Preemptive Round-Robin (100 Hz PIT, 50 ms quantum), 4-level CR3 page-table walker, 64 KB bump heap | Preemptive SMP Linux scheduler, full virtual memory |
-| **Desktop & UI** | Zero-lag dirty-rect 1080p compositor, Aurora Bloom Dark Mica theme, multi-window WM, procedural icons | Flagship 3D Glass-Silk wallpaper, animated welcome splash, Windows-11-style taskbar, Start Menu & Hardware Monitor |
+| **Desktop & UI** | Zero-lag dirty-rect 1080p compositor, Aurora Bloom Dark Mica theme, multi-window WM, procedural icons | Flagship 3D Glass-Silk wallpaper, animated welcome splash, Windows-11-style taskbar, Start Menu, **Snap Store (`snapd`)** & Hardware Monitor |
 | **Networking** | Wire-level Intel e1000 DMA driver + ARP + DHCP + UDP DNS + TCP + live HTTP/1.0 | Universal Wi-Fi (`Realtek`, `Intel`, `Qualcomm/Atheros`, `Broadcom`) + Windows-11-style live `nmcli` Wi-Fi Quick Panel |
 | **Web Browser** | Chrome-inspired multi-tab browser + live HTTP + playable offline T-Rex Dino runner (`chrome://dino`) | Full sandboxed Chromium (HTTPS/TLS 1.3, live Google & YouTube, zero `--no-sandbox` warning) |
 | **Host Disk Safety** | `StorageGuard` zero-write lock on internal NVMe/SATA | Read-only RAM Live mode (`boot=live`, zero internal SSD writes) |
@@ -185,9 +185,11 @@ RUST MICRO-OS KERNEL PROJECT/
     ├── build_hybrid_iso.sh                          # Linux 6.1 LTS + NetworkManager + Chromium builder
     ├── apply_polish_fixes.sh                        # Silent boot & Chromium sandbox hardening
     ├── apply_universal_compat.sh                    # Signed UEFI Secure Boot shim + universal firmware
-    ├── pack_universal_iso.sh                        # Hybrid UEFI (Secure Boot) + Legacy BIOS ISO packer
-    ├── shell/                                       # Custom desktop shell, Wi-Fi panel & hardware monitor
+    ├── apply_snap_store.sh                          # Real Canonical snapd + SRIKESH Snap Store integration
+    ├── pack_universal_iso.sh                        # Hybrid UEFI + Legacy BIOS ISO packer
+    ├── shell/                                       # Custom desktop shell, Snap Store, Wi-Fi & monitor
     │   ├── srikesh_shell.py                         # Taskbar, Start Menu, Welcome Overlay & Wi-Fi Panel
+    │   ├── srikesh_store.py                         # Native GTK3 Canonical Snap Store UI (`snapd`)
     │   ├── srikesh_sysmon.py                        # Live hardware, RAM, PCI & firmware telemetry
     │   └── generate_wallpaper.py                    # 1920x1080 wallpaper generator
     └── scripts/                                     # Oracle VirtualBox test & safe USB deploy scripts
@@ -200,11 +202,11 @@ RUST MICRO-OS KERNEL PROJECT/
 <a id="download-bootable-iso"></a>
 ## ⬇️ Download Bootable ISO
 
-The verified **Universal v3 Hybrid Bootable ISO** (UEFI Secure Boot + Legacy BIOS) is hosted on Hugging Face:
+The verified **SRIKESH OS Universal Live ISO (≤ 500 MB)** (UEFI + Legacy BIOS, with Real Wi-Fi, Sandboxed Chromium, and Live Canonical Snap Store) is hosted on Hugging Face:
 
 | Release Asset | Size | Download | SHA-256 Checksum |
 | :--- | :---: | :---: | :--- |
-| **`srikesh-os-hybrid-universal.iso`** | **757 MiB** *(794 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso?download=true)** | `53ef4834d791e3c84494fe9938d4bf02530e2f030bc90ec56761354a301cdd80` |
+| **`srikesh-os-hybrid-universal.iso`** | **468 MiB** *(491 MB)* | **[⬇️ Direct Download (Hugging Face)](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso?download=true)** | `9fb9709a47c05ddafe4aae3316f836e9e541d8e612ecbd971e3320c2d248e65b` |
 | **`srikesh-os-hybrid-universal.iso.sha256`** | **98 Bytes** | **[🔐 Download SHA-256 File](https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/resolve/main/srikesh-os-hybrid-universal.iso.sha256?download=true)** | Verification checksum |
 
 - **Hugging Face Files & Releases:** https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main
