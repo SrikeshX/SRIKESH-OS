@@ -10,29 +10,30 @@
 
 <br />
 
-[![Architecture](https://img.shields.io/badge/Arch-x86__64-0EA5E9?style=for-the-badge&logo=intel&logoColor=white)](#-system-architecture)
-[![Language](https://img.shields.io/badge/Kernel-Rust%20no__std-F97316?style=for-the-badge&logo=rust&logoColor=white)](#-bare-metal-rust-microkernel-srikesh-os)
-[![Boot](https://img.shields.io/badge/Boot-UEFI%20Secure%20Boot%20%2B%20BIOS-22C55E?style=for-the-badge&logo=linux&logoColor=white)](#-build-test--universal-live-usb-boot-guide)
-[![Virtualization](https://img.shields.io/badge/Verified-Oracle%20VirtualBox%207.2-1D4ED8?style=for-the-badge&logo=virtualbox&logoColor=white)](#-verification--benchmarks)
-[![Hardware](https://img.shields.io/badge/Bare--Metal-Dell%20Vostro%203520-38BDF8?style=for-the-badge&logo=dell&logoColor=white)](#real-hardware-verification)
-[![Size](https://img.shields.io/badge/Microkernel-5.1%20MB%20UEFI-8B5CF6?style=for-the-badge)](#measured-footprint)
+<a href="#system-architecture"><img src="https://img.shields.io/badge/Arch-x86__64-0EA5E9?style=for-the-badge&logo=intel&logoColor=white" alt="Architecture" /></a>
+<a href="#bare-metal"><img src="https://img.shields.io/badge/Kernel-Rust%20no__std-F97316?style=for-the-badge&logo=rust&logoColor=white" alt="Language" /></a>
+<a href="#boot-guide"><img src="https://img.shields.io/badge/Boot-UEFI%20Secure%20Boot%20%2B%20BIOS-22C55E?style=for-the-badge&logo=linux&logoColor=white" alt="Boot" /></a>
+<a href="#benchmarks"><img src="https://img.shields.io/badge/Verified-Oracle%20VirtualBox%207.2-1D4ED8?style=for-the-badge&logo=virtualbox&logoColor=white" alt="Virtualization" /></a>
+<a href="#real-hardware-verification"><img src="https://img.shields.io/badge/Bare--Metal-Dell%20Vostro%203520-38BDF8?style=for-the-badge&logo=dell&logoColor=white" alt="Hardware" /></a>
+<a href="#measured-footprint"><img src="https://img.shields.io/badge/Microkernel-5.1%20MB%20UEFI-8B5CF6?style=for-the-badge" alt="Size" /></a>
 
 <a href="https://huggingface.co/datasets/SrikeshX/SRIKESH-OS-Releases/tree/main"><img src="https://img.shields.io/badge/Download%20ISO-Hugging%20Face%20%E2%80%A2%20491%20MB-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Download SRIKESH OS ISO from Hugging Face" /></a>
 
 <br /><br />
 
-[Overview](#-overview) •
+[Overview](#overview) •
 [Download ISO](#download-bootable-iso) •
-[Dual Editions](#-dual-edition-architecture) •
-[Architecture](#-system-architecture) •
-[Benchmarks](#-verification--benchmarks) •
-[Boot Guide](#-build-test--universal-live-usb-boot-guide) •
-[Docs](#-documentation--reports)
+[Dual Editions](#dual-editions) •
+[Architecture](#system-architecture) •
+[Benchmarks](#benchmarks) •
+[Boot Guide](#boot-guide) •
+[Docs](#docs)
 
 </div>
 
 ---
 
+<a id="overview"></a>
 ## ⚡ Overview
 
 **SRIKESH OS** is a ground-up x86-64 operating system engineering project designed around **genuine bare-metal functionality, hardware safety, performance telemetry, and plug-and-play USB portability**.
@@ -52,6 +53,7 @@ To balance low-level OS engineering with full real-world laptop usability (moder
 
 ---
 
+<a id="dual-editions"></a>
 ## 🏗️ Dual-Edition Architecture
 
 ```mermaid
@@ -73,7 +75,8 @@ flowchart TB
         K2 --> H1["SRIKESH Welcome Splash & 3D Glass-Silk Desktop"]
         K2 --> H2["Windows-11-Style Live Wi-Fi Quick Panel (nmcli)"]
         K2 --> H3["Sandboxed Chromium (Google • YouTube • Dino)"]
-        K2 --> H4["Live Hardware & Telemetry Monitor"]
+        K2 --> H4["SRIKESH Snap Store (Live Canonical snapd)"]
+        K2 --> H5["Live Hardware & Telemetry Monitor"]
     end
 
     USB --> BM
@@ -82,6 +85,7 @@ flowchart TB
 
 ---
 
+<a id="bare-metal"></a>
 ## 🦀 Bare-Metal Rust Microkernel (`srikesh-os/`)
 
 Built from scratch in **nightly Rust (`x86_64-unknown-none`)** with zero OS runtime dependencies.
@@ -109,10 +113,12 @@ Engineered to boot directly off a single USB pendrive on **~95–98% of standard
 - **🔇 Silent Polished Startup:** Silenced routine kernel, systemd, and `tty1` console logs transitioning straight into the fullscreen **`SRIKESH OS — Awaken the Power of Technology.`** animated splash (with a verbose Safe Graphics fallback entry in GRUB).
 - **📡 Universal Hardware & Wi-Fi Support:** Preloaded with `firmware-realtek` (including Dell Vostro 3520's **Realtek RTL8821CE** with ASPM/LPS stability tuning), `firmware-iwlwifi` (Intel Wi-Fi), `firmware-atheros` (Qualcomm/Killer), `firmware-brcm80211` (Broadcom), `firmware-amd-graphics`, Intel i915 GPU, Intel SOF audio, and I2C HID `libinput` touchpad.
 - **🪟 Custom SRIKESH Desktop Shell:** Flagship 1920×1080 3D glass-silk wallpaper, taskbar, Start Menu, live Hardware Monitor (`srikesh_sysmon.py`), and a Windows-11-inspired **Wi-Fi Quick Panel** (`srikesh_shell.py`) powered directly by `NetworkManager` (`nmcli`) + `wpa_supplicant`.
+- **🛍️ Live Canonical Snap Store (`snapd`):** Native GTK3 **SRIKESH Snap Store** (`srikesh_store.py`) backed by real Canonical `snapd` (`snap find`, `snap install`, `snap list`, `snap remove`, and `/snap/bin` launcher), accessible from the desktop dock, taskbar, Start Menu, or `F6`.
 - **🛡️ Sandboxed Modern Browser:** Full **Chromium** with native Linux user-namespace sandboxing enabled (`kernel.unprivileged_userns_clone=1`, zero `--no-sandbox` banner), verified live on **Google** and **YouTube**.
 
 ---
 
+<a id="system-architecture"></a>
 ## 🗺️ System Architecture
 
 <div align="center">
@@ -121,6 +127,7 @@ Engineered to boot directly off a single USB pendrive on **~95–98% of standard
 
 ---
 
+<a id="benchmarks"></a>
 ## 📊 Verification & Benchmarks
 
 All virtual testing was conducted exclusively in **Oracle VirtualBox 7.2.22** (**Zero QEMU**), followed by live bare-metal USB testing on physical hardware.
@@ -161,7 +168,8 @@ Tested live on a physical **Dell Vostro 3520** booting directly from an **HP v21
 | `srikesh-os` Bare-Metal Kernel (`kernel-x86_64`) | **3.78 MB** | ≤ 500 MB ✅ |
 | `srikesh-os` Bootable UEFI Image (`uefi.img`) | **5.1 MB** | ≤ 500 MB ✅ |
 | `srikesh-os` Bootable BIOS Image (`bios.img`) | **6.5 MB** | ≤ 500 MB ✅ |
-| `srikesh-os-hybrid` Universal Live USB Payload | **~752 MB** | ≤ 2 GB ✅ |
+| `srikesh-os-hybrid` Universal Live ISO (Hugging Face, XZ) | **468 MiB** *(491 MB)* | ≤ 500 MB ✅ |
+| `srikesh-os-hybrid` Universal Live USB Payload (zstd) | **~752 MB** | ≤ 2 GB ✅ |
 
 ---
 
@@ -172,6 +180,7 @@ RUST MICRO-OS KERNEL PROJECT/
 ├── README.md                                        # Project overview & showcase (this file)
 ├── .gitignore                                       # Excludes >100 MB ISO/SquashFS build artifacts
 ├── ca6_assignment.md                                # Academic operating-system specification
+├── submission folder/                               # Academic reports & CA-6 PDF submissions
 │
 ├── srikesh-os/                                      # 🦀 Edition 1: Pure Rust no_std Microkernel
 │   ├── Cargo.toml & build.rs                        # Dual UEFI/BIOS bootloader image builder
@@ -214,6 +223,7 @@ The verified **SRIKESH OS Universal Live ISO (≤ 500 MB)** (UEFI + Legacy BIOS,
 
 ---
 
+<a id="boot-guide"></a>
 ## 🚀 Build, Test & Universal Live USB Boot Guide
 
 ### Quick Boot-Menu Keys (USB Live Boot)
@@ -247,6 +257,7 @@ cd srikesh-os-hybrid
 sudo bash build_hybrid_iso.sh
 sudo bash apply_polish_fixes.sh
 sudo bash apply_universal_compat.sh
+sudo bash apply_snap_store.sh
 ```
 
 Test in **Oracle VirtualBox** via `scripts/test_vbox_hybrid.ps1`, then deploy safely to a verified FAT32 USB drive via `scripts/deploy_hybrid_usb.ps1`.
@@ -263,6 +274,7 @@ Test in **Oracle VirtualBox** via `scripts/test_vbox_hybrid.ps1`, then deploy sa
 | `F3` | Open Web Browser |
 | `F4` | Open Wi-Fi / Settings Panel |
 | `F5` | Open System & Hardware Monitor |
+| `F6` | Open SRIKESH Snap Store (`snapd`) |
 | `Alt + Tab` | Switch Active Window |
 | `Alt + F4` / `Esc` | Close Active Window |
 
@@ -270,6 +282,7 @@ Test in **Oracle VirtualBox** via `scripts/test_vbox_hybrid.ps1`, then deploy sa
 
 ---
 
+<a id="docs"></a>
 ## 📚 Documentation & Reports
 
 - 📘 **[18-Section Academic Engineering Report](srikesh-os/docs/SRIKESH_OS_ACADEMIC_REPORT.md)**
